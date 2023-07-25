@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    userName: { String, required: true },
-    fName: { String, required: true },
-    lName: { String, required: true },
-    occupation: { String, required: true },
-    superAdmin: { Boolean, required: true },     // The superAdmin property is required and must be a boolean. Only difference is that a superAdmin can add new users to the database.
-    password: { String, required: true }
+    userName: {type: String, required: true },
+    fName: {type: String, required: true },
+    lName: { type:String, required: true },
+    occupation: {type: String, required: true },
+    superAdmin: {type: Boolean, required: true },     // The superAdmin property is required and must be a boolean. Only difference is that a superAdmin can add new users to the database.
+    password: {type: String, required: true }
 });
 
-module.exports = mongoose.Model('User', userSchema);
+module.exports = mongoose.model('User', userSchema);
