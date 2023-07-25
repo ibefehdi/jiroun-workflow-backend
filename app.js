@@ -7,6 +7,8 @@ const session = require("express-session");
 const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcrypt");
 const User = require("./models/userSchema")
+const projectRoutes = require("./routes/projectRoutes");
+const userRoutes = require("./routes/userRoutes");
 require('dotenv').config();
 
 
@@ -43,7 +45,7 @@ mongoose.connect(mongoURI, {
 passport.use(
     new LocalStrategy(async function (username, password, done) {
         try {
-            const user = await dashboardUser.findOne({ username: username });
+            const user = await User.findOne({ username: username });
             if (!user) {
                 return done(null, false, { message: "Incorrect username." });
             }
@@ -63,11 +65,13 @@ passport.serializeUser(function (user, done) {
 });
 
 passport.deserializeUser(function (id, done) {
-    dashboardUser.findById(id, function (err, user) {
+    User.findById(id, function (err, user) {
         done(err, user);
     });
 });
 
+app.use('/api/v1/', userRoutes);
+app.use('/api/v1/', projectRoutes);
 
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
