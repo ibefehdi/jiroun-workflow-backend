@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
 const requestSchema = new mongoose.Schema({
     requestType: String,
+    projectName: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     items: [{
         itemName: { type: String, required: true },
         itemQuantity: { type: String, required: true },
         unitPrice: Number,
         totalPrice: Number,
     }],
+    acheivedAmount: { type: Number, required: true },
     status: { type: Number, enum: [0, 1, 2], default: 0 }, // 0: Attention Required, 1: Approved, 2: Declined and more information is required
     chainOfCommand: [ //Chain of commands is how the request is going to move down the chain of command ending always in a managing partner unless it has been declined
         {
