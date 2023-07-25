@@ -1,19 +1,21 @@
 const User = require('../models/userSchema');
 // require bcrypt for password hashing
 const bcrypt = require('bcrypt');
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
 
 exports.addUser = async (req, res, next) => {
     try {
         // Get user input
-        const { userName, fName, lName, occupation, superAdmin, password } = req.body;
+        const { username, fName, lName, occupation, superAdmin, password } = req.body;
 
         // Validate user input
-        if (!(userName && fName && lName && occupation && password)) {
+        if (!(username && fName && lName && occupation && password)) {
             res.status(400).send("All input is required");
         }
 
         // check if user already exist
-        const oldUser = await User.findOne({ userName });
+        const oldUser = await User.findOne({ username });
 
         if (oldUser) {
             return res.status(409).send("User Already Exist. Please Login");
@@ -24,7 +26,7 @@ exports.addUser = async (req, res, next) => {
 
         // Create user in our database
         const user = await User.create({
-            userName,
+            username,
             fName,
             lName,
             occupation,
@@ -33,33 +35,41 @@ exports.addUser = async (req, res, next) => {
         });
 
         // return new user
-        res.status(201).json(user);
+        res.status(201).json({
+            message: "Sign-up successfully.",
+            username: user.username,
+            fName: user.fName,
+            lName: user.lName,
+            occupation: user.occupation,
+            superAdmin: user.superAdmin,
+            _id: user._id
+        });
     } catch (err) {
         console.log(err);
     }
 };
-exports.loginUser = async (req,res,next)=>{
+exports.loginUser = async (req, res, next) => {
     passport.authenticate("local", async function (err, user, info) {
         if (err) {
-          return next(err);
+            return next(err);
         }
         if (!user) {
-          return res.status(401).send(info.message);
+            return res.status(401).send(info.message);
         }
         req.logIn(user, async function (err) {
-          if (err) {
-            return next(err);
-          }
-          return res.status(200).json({
-            message: "Authenticated successfully.",
-            username:user.userName,
-            fName: user.fName,
-            lName: user.lName,
-            occupation: user.occupation,
-            superAdmin:user.superAdmin
-          });
+            if (err) {
+                return next(err);
+            }
+            return res.status(200).json({
+                message: "Authenticated successfully.",
+                username: user.username,
+                fName: user.fName,
+                lName: user.lName,
+                occupation: user.occupation,
+                superAdmin: user.superAdmin
+            });
         });
-      })(req, res, next);
+    })(req, res, next);
 }
 exports.getAllUsers = async (req, res, next) => {
     try {
@@ -67,7 +77,7 @@ exports.getAllUsers = async (req, res, next) => {
             {
                 $project: {
                     _id: 1,
-                    userName: 1,
+                    username: 1,
                     fName: 1,
                     lName: 1,
                     occupation: 1,
