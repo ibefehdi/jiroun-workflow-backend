@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const requestSchema = new mongoose.Schema({
     requestType: String,
-    projectName: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    project: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     items: [{
         itemName: { type: String, required: true },
         itemQuantity: { type: String, required: true },
