@@ -7,7 +7,15 @@ const projectSchema = new mongoose.Schema({
     contractors:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'User',
-    }]
+    }],
+    projectManager:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'User',
+    },
+    projectDirector:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'User',
+    }
 })
 
 module.exports = mongoose.model('Project',projectSchema);
