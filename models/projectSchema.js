@@ -3,6 +3,10 @@ const mongoose = require('mongoose');
 const projectSchema = new mongoose.Schema({
     projectName: { type: String, required: true },
     year: { type: Date, required: true },
+    requests: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Request',
+    }],
     location: { type: String, required: true },
     contractors: [{
         type: mongoose.Schema.Types.ObjectId,
