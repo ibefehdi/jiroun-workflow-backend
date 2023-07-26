@@ -73,19 +73,29 @@ exports.loginUser = async (req, res, next) => {
 }
 exports.getAllUsers = async (req, res, next) => {
     try {
-        const users = await User.aggregate([
-            {
-                $project: {
-                    _id: 1,
-                    username: 1,
-                    fName: 1,
-                    lName: 1,
-                    occupation: 1,
-                }
+        const users = await User.find({}, {
+            _id: 1,
+            username: 1,
+            fName: 1,
+            lName: 1,
+            occupation: 1,
+        });
+
+        // Get the count of all users
+        const count = await User.countDocuments();
+
+        // Send the response in the requested format
+        res.status(200).json({
+            data: users,
+            count: count,
+            metadata: {
+                total: count
             }
-        ]);
-        res.status(200).json(users)
+        });
+
     } catch (err) {
+        console.error(err);  // Add this line to log the error
         res.status(500).json({ message: err.message });
     }
-}
+};
+
