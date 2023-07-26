@@ -5,7 +5,7 @@ const { getAllProjects, getUserProjects, createProject, updateProject,getProject
 
 router.get('/projects', getAllProjects);
 router.post('/projects', createProject);
-router.get('/userProjects/:userId', getUserProjects);
+router.get('/projects/:userId', getUserProjects);
 router.get('/projectRequests/:projectId', getProjectRequests);
 
 router.patch('/projects/:projectId', updateProject);
