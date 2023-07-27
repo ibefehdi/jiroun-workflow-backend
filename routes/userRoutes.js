@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllUsers, addUser, loginUser, getSpecificOccupationUsers } = require('../controllers/userController')
+const { getAllUsers, addUser, loginUser, getContractorsUsers, getProjectManagerUsers, getProjectDirectorUsers, } = require('../controllers/userController')
 
 
 router.post('/users/signup', addUser);
@@ -12,6 +12,10 @@ router.post('/users/login', loginUser);
 // Get all users
 router.get('/users', getAllUsers);
 
-router.get('/specificusers', getSpecificOccupationUsers);
+router.get('/users/contractors', getContractorsUsers);
+
+router.get('/users/projectmanagers', getProjectManagerUsers);
+
+router.get('/users/projectdirectors', getProjectDirectorUsers);
 
 module.exports = router;

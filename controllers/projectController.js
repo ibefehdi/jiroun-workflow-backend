@@ -92,12 +92,12 @@ exports.getUserProjects = async (req, res) => {
     try {
         const projects = await Project.find({
             $or: [
-                { contractors: mongoose.Types.ObjectId(userId) },
-                { projectManager: mongoose.Types.ObjectId(userId) },
-                { projectDirector: mongoose.Types.ObjectId(userId) }
+                { contractors: new mongoose.Types.ObjectId(userId) },
+                { projectManager: new mongoose.Types.ObjectId(userId) },
+                { projectDirector: new mongoose.Types.ObjectId(userId) }
             ]
         }).populate('requests');
-        const count = await Project.countDocuments();
+        const count = projects.length;
         res.status(200).json({
             data: projects,
             count: count,
@@ -109,6 +109,7 @@ exports.getUserProjects = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
 
 exports.getProjectRequests = async (req, res) => {
     const { projectId } = req.params;

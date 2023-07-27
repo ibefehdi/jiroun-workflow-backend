@@ -66,7 +66,8 @@ exports.loginUser = async (req, res, next) => {
                 fName: user.fName,
                 lName: user.lName,
                 occupation: user.occupation,
-                superAdmin: user.superAdmin
+                superAdmin: user.superAdmin,
+                _id: user._id
             });
         });
     })(req, res, next);
@@ -99,14 +100,14 @@ exports.getAllUsers = async (req, res, next) => {
     }
 };
 
-exports.getSpecificOccupationUsers = async (req, res, next) => {
+exports.getContractorsUsers = async (req, res, next) => {
     try {
         // Define the array of occupations
-        const occupations = ['Contracter', 'Project Manager', 'Project Director'];
+        const occupation = 'Contractor'
 
         // Find users with specific occupations
         const users = await User.find({
-            occupation: { $in: occupations }
+            occupation: occupation
         }, {
             _id: 1,
             username: 1,
@@ -115,7 +116,60 @@ exports.getSpecificOccupationUsers = async (req, res, next) => {
             occupation: 1,
         });
 
-        // Get the count of specific occupation users
+
+
+        // Send the response in the requested format
+        res.status(200).json(users);
+
+    } catch (err) {
+        console.error(err);  // Add this line to log the error
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.getProjectManagerUsers = async (req, res, next) => {
+    try {
+        // Define the array of occupations
+        const occupation = 'Project Manager'
+
+        // Find users with specific occupations
+        const users = await User.find({
+            occupation: occupation
+        }, {
+            _id: 1,
+            username: 1,
+            fName: 1,
+            lName: 1,
+            occupation: 1,
+        });
+
+
+
+        // Send the response in the requested format
+        res.status(200).json(users);
+
+    } catch (err) {
+        console.error(err);  // Add this line to log the error
+        res.status(500).json({ message: err.message });
+    }
+};
+exports.getProjectDirectorUsers = async (req, res, next) => {
+    try {
+        // Define the array of occupations
+        const occupation = 'Project Director'
+
+        // Find users with specific occupations
+        const users = await User.find({
+            occupation: occupation
+        }, {
+            _id: 1,
+            username: 1,
+            fName: 1,
+            lName: 1,
+            occupation: 1,
+        });
+
+
 
         // Send the response in the requested format
         res.status(200).json(users);
