@@ -66,7 +66,8 @@ exports.loginUser = async (req, res, next) => {
                 fName: user.fName,
                 lName: user.lName,
                 occupation: user.occupation,
-                superAdmin: user.superAdmin
+                superAdmin: user.superAdmin,
+                _id: user._id
             });
         });
     })(req, res, next);
@@ -99,10 +100,10 @@ exports.getAllUsers = async (req, res, next) => {
     }
 };
 
-exports.getContractersUsers = async (req, res, next) => {
+exports.getContractorsUsers = async (req, res, next) => {
     try {
         // Define the array of occupations
-        const occupation = 'Contracter'
+        const occupation = 'Contractor'
 
         // Find users with specific occupations
         const users = await User.find({
