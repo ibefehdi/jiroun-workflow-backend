@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const Project = require('../models/projectSchema');
 
 // get all projects
@@ -40,7 +41,7 @@ exports.createProject = async (req, res) => {
 // update project
 exports.updateProject = async (req, res) => {
     try {
-        const updatedProject = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedProject = await Project.findByIdAndUpdate(req.params.projectId, req.body, { new: true });
         if (!updatedProject) {
             res.status(404).json({ message: "No project found with this ID." });
         } else {
