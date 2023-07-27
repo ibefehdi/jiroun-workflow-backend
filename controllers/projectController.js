@@ -4,7 +4,10 @@ const Project = require('../models/projectSchema');
 // get all projects
 exports.getAllProjects = async (req, res) => {
     try {
-        const projects = await Project.find().populate('requests');
+        const projects = await Project.find().populate('requests')
+            .populate('contractors')
+            .populate('projectManager')
+            .populate('projectDirector');;
         const count = await Project.countDocuments();
         res.status(200).json({
             data: projects,
@@ -96,7 +99,7 @@ exports.getUserProjects = async (req, res) => {
                 { projectManager: new mongoose.Types.ObjectId(userId) },
                 { projectDirector: new mongoose.Types.ObjectId(userId) }
             ]
-        }).populate('requests');
+        }).populate('requests').populate('contractors').populate('projectManager').populate('projectDirector');
         const count = projects.length;
         res.status(200).json({
             data: projects,
