@@ -1,32 +1,29 @@
 const mongoose = require('mongoose');
 const requestSchema = new mongoose.Schema({
     requestType: String,
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     items: [{
         itemName: { type: String },
         itemQuantity: { type: String },
-        unitPrice: Number,
-        totalPrice: Number,
+        boqId: { type: String } // added boqId field in items array
     }],
     acheivedAmount: { type: Number },
-    BoqId: { type: String },
-    status: { type: Number, enum: [0, 1, 2], default: 0 }, // 0: Attention Required, 1: Approved, 2: Declined and more information is required
-    chainOfCommand: [ //Chain of commands is how the request is going to move down the chain of command ending always in a managing partner unless it has been declined
+    status: { type: Number, enum: [0, 1, 2], default: 0 },
+    chainOfCommand: [
         {
-            user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-            nextUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // renamed 'user' to 'userId'
+            nextUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // renamed 'nextUser' to 'nextUserId'
             sentAt: { type: Date, required: true },
             comments: [
                 {
-                    text: { type: String, required: true },
+                    comment: { type: String, required: true }, // renamed 'text' to 'comment'
                     madeBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
                     madeAt: { type: Date, required: true },
                 }
             ]
         },
-
     ],
     lastSentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
-// TODO: Add separate endpoints for the declined, approved and Attention required requests, Also add an endpoint that sends back all the requests
+
 module.exports = mongoose.model('Request', requestSchema);
