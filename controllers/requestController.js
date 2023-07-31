@@ -1,5 +1,5 @@
 const Request = require('../models/requestSchema');
-
+const mongoose = require('mongoose');
 // Get all requests
 exports.getAllRequests = async (req, res) => {
     try {
@@ -171,11 +171,13 @@ exports.getRequestById = async (req, res) => {
             })
             .populate({
                 path: 'project.projectManager',
-                model: 'User'
+                model: 'User',
+                options: { retainNullValues: true }
             })
             .populate({
                 path: 'project.projectDirector',
-                model: 'User'
+                model: 'User',
+                options: { retainNullValues: true }
             });
         if (!request) {
             return res.status(404).json({ message: `Request with id ${requestId} not found.` });
@@ -188,3 +190,33 @@ exports.getRequestById = async (req, res) => {
 };
 
 
+exports.getRequestsByNextUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Use $elemMatch to find documents where the nextUserId in any of the chainOfCommand matches the userId
+        const requests = await Request.find({
+            'chainOfCommand': {
+                $elemMatch: { 'nextUserId': userId }
+            }
+        })
+            .populate('project')
+            .populate('lastSentBy')
+            .populate({
+                path: 'chainOfCommand.userId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.nextUserId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.comments.madeBy',
+                model: 'User'
+            });
+
+        res.status(200).json(requests);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
