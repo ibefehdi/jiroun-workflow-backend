@@ -1,4 +1,4 @@
-const Request = require('../models/requestSchema'); 
+const Request = require('../models/requestSchema');
 
 // Get all requests
 exports.getAllRequests = async (req, res) => {
@@ -85,11 +85,27 @@ exports.editRequest = async (req, res) => {
 exports.createRequest = async (req, res) => {
     try {
         const { requestType, project, items, acheivedAmount, status, chainOfCommand, lastSentBy } = req.body;
+
+        // Validate necessary data based on requestType
+        if (requestType === 'Request Item') {
+            if (!items || items.length === 0) {
+                return res.status(400).json({ message: 'Items array is required for Request Item type' });
+            } else if (acheivedAmount !== null && acheivedAmount !== undefined) {
+                return res.status(400).json({ message: 'Achieved amount is not allowed for Request Item type' });
+            }
+        } else if (requestType === 'Request Payment') {
+            if (acheivedAmount === null || acheivedAmount === undefined) {
+                return res.status(400).json({ message: 'Achieved amount is required for Request Payment type' });
+            } else if (items && items.length > 0) {
+                return res.status(400).json({ message: 'Items array is not allowed for Request Payment type' });
+            }
+        }
+
         const newRequest = new Request({
             requestType,
             project,
-            items: items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity })),
-            acheivedAmount,
+            items: requestType === 'Request Item' ? items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity })) : [],
+            acheivedAmount: requestType === 'Request Payment' ? acheivedAmount : 0,
             status,
             chainOfCommand: chainOfCommand.map(command => ({
                 ...command,
