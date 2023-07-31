@@ -6,7 +6,9 @@ const { getAllRequests,
     getRequestsByAttentionRequired,
     getRequestsByDeclined,
     editRequest,
-    createRequest, getRequestById } = require('../controllers/requestController');
+    createRequest, 
+    getRequestById, 
+    getRequestsByNextUserId } = require('../controllers/requestController');
 
 // Get all requests
 router.get('/requests', getAllRequests);
@@ -30,5 +32,8 @@ router.get('/requests/:requestId', getRequestById)
 
 // Create a request
 router.post('/requests', createRequest);
+
+router.get('/requests/user/:userId', getRequestsByNextUserId);
+
 
 module.exports = router;
