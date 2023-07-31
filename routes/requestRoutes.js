@@ -6,7 +6,7 @@ const { getAllRequests,
     getRequestsByAttentionRequired,
     getRequestsByDeclined,
     editRequest,
-    createRequest } = require('../controllers/requestController');
+    createRequest, getRequestById } = require('../controllers/requestController');
 
 // Get all requests
 router.get('/requests', getAllRequests);
@@ -25,6 +25,8 @@ router.get('/requests/status/declined', getRequestsByDeclined);
 
 // Edit a request
 router.put('/requests/:requestId', editRequest);
+
+router.get('/requests/:requestId', getRequestById)
 
 // Create a request
 router.post('/requests', createRequest);
