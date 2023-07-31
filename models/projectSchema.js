@@ -12,10 +12,10 @@ const projectSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     }],                                             //TODO: Make separate endpoints for the contractors so that they cannot acces other projects
-    projectManager: {
+    projectManager: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-    },
+    }],
     projectDirector: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
