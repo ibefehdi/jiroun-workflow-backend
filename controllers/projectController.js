@@ -128,3 +128,35 @@ exports.getProjectRequests = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+// get projectDirectors by projectId
+exports.getProjectDirectors = async (req, res) => {
+    const { projectId } = req.params;
+
+    try {
+        const project = await Project.findById(projectId).populate('projectDirector');
+        if (project) {
+            res.status(200).json(project.projectDirector);
+        } else {
+            res.status(404).json({ message: 'Project not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// get projectManagers by projectId
+exports.getProjectManagers = async (req, res) => {
+    const { projectId } = req.params;
+
+    try {
+        const project = await Project.findById(projectId).populate('projectManager');
+        if (project) {
+            res.status(200).json(project.projectManager);
+        } else {
+            res.status(404).json({ message: 'Project not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
