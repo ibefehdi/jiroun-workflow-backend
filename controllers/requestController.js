@@ -3,8 +3,29 @@ const Request = require('../models/requestSchema');
 // Get all requests
 exports.getAllRequests = async (req, res) => {
     try {
-        const requests = await Request.find({});
-        res.status(200).json(requests);
+        const requests = await Request.find({})
+            .populate('project')
+            .populate('lastSentBy')
+            .populate({
+                path: 'chainOfCommand.userId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.nextUserId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.comments.madeBy',
+                model: 'User'
+            }); const count = await Request.countDocuments();
+
+        res.status(200).json({
+            data: requests,
+            count: count,
+            metadata: {
+                total: count
+            }
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -121,6 +142,46 @@ exports.createRequest = async (req, res) => {
         const savedRequest = await newRequest.save();
 
         res.status(201).json(savedRequest);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+// Get a specific request by requestId
+exports.getRequestById = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const request = await Request.findById(requestId)
+            .populate('project')
+            .populate('lastSentBy')
+            .populate({
+                path: 'chainOfCommand.userId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.nextUserId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.comments.madeBy',
+                model: 'User'
+            })
+            .populate({
+                path: 'project.contractors',
+                model: 'User'
+            })
+            .populate({
+                path: 'project.projectManager',
+                model: 'User'
+            })
+            .populate({
+                path: 'project.projectDirector',
+                model: 'User'
+            });
+        if (!request) {
+            return res.status(404).json({ message: `Request with id ${requestId} not found.` });
+        }
+
+        res.status(200).json(request);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
