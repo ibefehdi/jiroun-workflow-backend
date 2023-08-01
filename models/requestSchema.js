@@ -5,18 +5,21 @@ const requestSchema = new mongoose.Schema({
     items: [{
         itemName: { type: String },
         itemQuantity: { type: String },
-        boqId: { type: String } // added boqId field in items array
+        boqId: { type: String },
+        unitPrice: { type: String },
+        totalPrice: { type: String },
     }],
     acheivedAmount: { type: Number },
     status: { type: Number, enum: [0, 1, 2], default: 0 },
     chainOfCommand: [
         {
-            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // renamed 'user' to 'userId'
-            nextUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // renamed 'nextUser' to 'nextUserId'
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+            nextUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
             sentAt: { type: Date, required: true },
+            status: { type: Number, enum: [0, 1, 2], default: 0 }, // Adding status here
             comments: [
                 {
-                    comment: { type: String, required: true }, // renamed 'text' to 'comment'
+                    comment: { type: String, required: true },
                     madeBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
                     madeAt: { type: Date, required: true },
                 }
@@ -24,6 +27,8 @@ const requestSchema = new mongoose.Schema({
         },
     ],
     lastSentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    completionDate: { type: Date }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Request', requestSchema);
