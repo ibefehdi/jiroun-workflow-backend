@@ -153,7 +153,6 @@ exports.getRequestById = async (req, res) => {
     try {
         const { requestId } = req.params;
         const request = await Request.findById(requestId)
-            .populate('project')
             .populate('lastSentBy')
             .populate({
                 path: 'chainOfCommand.userId',
@@ -168,19 +167,15 @@ exports.getRequestById = async (req, res) => {
                 model: 'User'
             })
             .populate({
-                path: 'project.contractors',
-                model: 'User'
-            })
-            .populate({
-                path: 'project.projectManager',
-                model: 'User',
-                options: { retainNullValues: true }
-            })
-            .populate({
-                path: 'project.projectDirector',
-                model: 'User',
-                options: { retainNullValues: true }
+                path: 'project',
+                model: 'Project',
+                populate: {
+                    path: 'contractors projectManager projectDirector',
+                    model: 'User',
+                    options: { retainNullValues: true }
+                }
             });
+
         if (!request) {
             return res.status(404).json({ message: `Request with id ${requestId} not found.` });
         }
@@ -190,6 +185,7 @@ exports.getRequestById = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
 
 
 exports.getRequestsByNextUserId = async (req, res) => {
@@ -217,7 +213,13 @@ exports.getRequestsByNextUserId = async (req, res) => {
                 model: 'User'
             });
 
-        const count = await Request.countDocuments();
+        const count = await Request.countDocuments().populate({
+            path: 'project',
+            populate: {
+                path: 'projectManager projectDirector contractors',
+                model: 'User'
+            }
+        });
 
         res.status(200).json({
             data: requests,
