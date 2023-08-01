@@ -105,7 +105,7 @@ exports.editRequest = async (req, res) => {
 // Create a request without item price and total price
 exports.createRequest = async (req, res) => {
     try {
-        const { requestType, project, items, acheivedAmount, status, chainOfCommand, lastSentBy } = req.body;
+        const { requestType, project, items, acheivedAmount, chainOfCommand, lastSentBy } = req.body;
 
         // Validate necessary data based on requestType
         if (requestType === 'Request Item') {
@@ -127,9 +127,10 @@ exports.createRequest = async (req, res) => {
             project,
             items: requestType === 'Request Item' ? items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity })) : [],
             acheivedAmount: requestType === 'Request Payment' ? acheivedAmount : 0,
-            status,
+            status: 0,
             chainOfCommand: chainOfCommand.map(command => ({
                 ...command,
+                status: 0, // Adding default status value here
                 sentAt: Date.now(),
                 comments: command.comments.map(comment => ({
                     ...comment,
@@ -146,6 +147,7 @@ exports.createRequest = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
 // Get a specific request by requestId
 exports.getRequestById = async (req, res) => {
     try {
@@ -215,7 +217,16 @@ exports.getRequestsByNextUserId = async (req, res) => {
                 model: 'User'
             });
 
-        res.status(200).json(requests);
+        const count = await Request.countDocuments();
+
+        res.status(200).json({
+            data: requests,
+            count: count,
+            metadata: {
+                total: count
+            }
+
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
