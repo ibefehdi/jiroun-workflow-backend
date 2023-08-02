@@ -20,7 +20,7 @@ router.get('/users/projectdirectors', getProjectDirectorUsers);
 
 router.get('/users/finance', getFinanceUsers)
 
-router.get('/users/proceurement', getProcurementUsers);
+router.get('/users/procurement', getProcurementUsers);
 
 router.get('/users/managingpartner', getManagingPartnerUsers);
 
