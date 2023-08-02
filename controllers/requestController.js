@@ -186,20 +186,17 @@ exports.getRequestById = async (req, res) => {
     }
 };
 
+// Controller to get the requests a user made
+exports.getRequestsMadeByUser = async (req, res) => {
+    const { userId } = req.params;
 
-
-exports.getRequestsByNextUserId = async (req, res) => {
     try {
-        const { userId } = req.params;
-
-        // Use $elemMatch to find documents where the nextUserId in any of the chainOfCommand matches the userId
         const requests = await Request.find({
-            'chainOfCommand': {
-                $elemMatch: { 'nextUserId': userId }
-            }
+            "chainOfCommand.userId": userId
+        }).populate({
+            path: 'project',
+            model: 'Project'
         })
-            .populate('project')
-            .populate('lastSentBy')
             .populate({
                 path: 'chainOfCommand.userId',
                 model: 'User'
@@ -213,23 +210,50 @@ exports.getRequestsByNextUserId = async (req, res) => {
                 model: 'User'
             });
 
-        const count = await Request.countDocuments().populate({
-            path: 'project',
-            populate: {
-                path: 'projectManager projectDirector contractors',
-                model: 'User'
-            }
-        });
-
-        res.status(200).json({
+        const count = requests.length;
+        res.json({
             data: requests,
-            count: count,
-            metadata: {
-                total: count
-            }
-
+            count: count, metadata: { count: count }
         });
+
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error(err);
+        res.status(500).send('Server error');
     }
-};
+}
+
+// Controller to get the requests a user received
+exports.getRequestsReceivedByUser = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const requests = await Request.find({
+            "chainOfCommand.nextUserId": userId
+        }).populate({
+            path: 'project',
+            model: 'Project'
+        })
+            .populate({
+                path: 'chainOfCommand.userId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.nextUserId',
+                model: 'User'
+            })
+            .populate({
+                path: 'chainOfCommand.comments.madeBy',
+                model: 'User'
+            });
+
+        const count = requests.length;
+        res.json({
+            data: requests,
+            count: count, metadata: { count: count }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+}
