@@ -80,6 +80,7 @@ exports.getAllUsers = async (req, res, next) => {
             fName: 1,
             lName: 1,
             occupation: 1,
+            superAdmin: 1,
         });
 
         // Get the count of all users

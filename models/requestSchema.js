@@ -13,8 +13,8 @@ const requestSchema = new mongoose.Schema({
     status: { type: Number, enum: [0, 1, 2], default: 0 },
     chainOfCommand: [
         {
-            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-            nextUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            nextUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
             sentAt: { type: Date, required: true },
             status: { type: Number, enum: [0, 1, 2], default: 0 }, // Adding status here
             comments: [
