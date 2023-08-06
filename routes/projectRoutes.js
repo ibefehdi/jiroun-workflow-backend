@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getAllProjects, getUserProjects, createProject, updateProject, getProjectRequests, getProjectDirectors, getProjectManagers } = require("../controllers/projectController")
+const { getAllProjects, getUserProjects, createProject, updateProject, getProjectRequests, getProjectDirectors, getProjectManagers, getProjectsCount } = require("../controllers/projectController")
 
 
 router.get('/projects', getAllProjects);
+router.get('/projectscount', getProjectsCount)
 router.post('/projects', createProject);
 router.get('/projects/:userId', getUserProjects);
 router.get('/projectRequests/:projectId', getProjectRequests);
