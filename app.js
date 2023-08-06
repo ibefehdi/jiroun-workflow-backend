@@ -11,6 +11,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const userRoutes = require("./routes/userRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const requestRoutes2 = require("./routes/request2Routes");
+const completeRequestRoutes = require('./routes/completeRequestRoutes');
 
 require('dotenv').config();
 
@@ -77,4 +78,5 @@ app.use('/api/v1/', userRoutes);
 app.use('/api/v1/', projectRoutes);
 app.use('/api/v1/', requestRoutes)
 app.use('/api/v1/new', requestRoutes2);
+app.use('/api/v1/', completeRequestRoutes);
 app.listen(port, () => console.log(`Listening on port ${port}`));
