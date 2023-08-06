@@ -116,7 +116,7 @@ exports.createRequest = async (req, res) => {
             project,
             sender,
             recipient,
-            items: requestType === 'Request Item' ? items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity })) : [],
+            items: requestType === 'Request Item' ? items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity, unitPrice: item.unitPrice, totalPrice: item.totalPrice })) : [],
             acheivedAmount: requestType === 'Request Payment' ? acheivedAmount : 0,
             status: 0,
             comments,
