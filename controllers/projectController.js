@@ -2,6 +2,14 @@ const mongoose = require('mongoose')
 const Project = require('../models/projectSchema');
 
 // get all projects
+exports.getProjectsCount = async (req, res) => {
+    try {
+        const projects = await Project.countDocuments();
+        res.status(200).json({ count: projects });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
 exports.getAllProjects = async (req, res) => {
     try {
         const projects = await Project.find().populate('requests')
