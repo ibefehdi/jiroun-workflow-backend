@@ -50,3 +50,55 @@ exports.createCompleteRequest = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 }
+
+
+exports.getAllCompleteRequests = async (req, res) => {
+    try {
+        const completeRequests = await Request.find().populate('project sender recipient recipientRequestId previousRequestId');
+        const count = await Request.count();
+        res.status(200).json({ data: completeRequests, count: count, metadata: { total: count } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.getByProjectId = async (req, res) => {
+    try {
+        const projectId = req.params.projectId;
+        const completeRequests = await Request.find({ project: projectId }).populate('project sender recipient recipientRequestId previousRequestId allRequests');
+        const count = completeRequests.length;
+        res.status(200).json({ data: completeRequests, count: count, metadata: { total: count } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.getByRequestIdInAllRequests = async (req, res) => {
+    try {
+        const requestId = req.params.requestId;
+        const completeRequests = await Request.find({ allRequests: requestId }).populate('project sender recipient recipientRequestId previousRequestId allRequests');
+        const count = completeRequests.length;
+        res.status(200).json({ data: completeRequests, count: count, metadata: { total: count } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.getBySender = async (req, res) => {
+    try {
+        const senderId = req.params.senderId;
+        const completeRequests = await Request.find({ sender: senderId }).populate('project sender recipient recipientRequestId previousRequestId allRequests');
+        const count = completeRequests.length;
+        res.status(200).json({ data: completeRequests, count: count, metadata: { total: count } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getByRecipient = async (req, res) => {
+    try {
+        const recipientId = req.params.recipientId;
+        const completeRequests = await Request.find({ recipient: recipientId }).populate('project sender recipient recipientRequestId previousRequestId allRequests');
+        const count = completeRequests.length;
+        res.status(200).json({ data: completeRequests, count: count, metadata: { total: count } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
