@@ -1,259 +1,414 @@
-const Request = require('../models/requestSchema');
+const { Request, SubRequest, Counter } = require('../models/requestSchema');
 const mongoose = require('mongoose');
-// Get all requests
+
+
 exports.getAllRequests = async (req, res) => {
     try {
-        const requests = await Request.find({})
+        const requests = await Request.find()
             .populate('project')
-            .populate('lastSentBy')
             .populate({
-                path: 'chainOfCommand.userId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.nextUserId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.comments.madeBy',
-                model: 'User'
-            }); const count = await Request.countDocuments();
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
 
-        res.status(200).json({
-            data: requests,
-            count: count,
-            metadata: {
-                total: count
-            }
-        });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Get all requests by projectId
-exports.getAllRequestsByProjectId = async (req, res) => {
-    try {
-        const { projectId } = req.params;
-        const requests = await Request.find({ project: projectId });
         res.status(200).json(requests);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching requests', error });
     }
 };
 
-exports.getRequestsByAttentionRequired = async (req, res) => {
-    try {
-        const requests = await Request.find({ status: 0 });
-        res.status(200).json(requests);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Get requests by status: Approved
-exports.getRequestsByApproved = async (req, res) => {
-    try {
-        const requests = await Request.find({ status: 1 });
-        res.status(200).json(requests);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Get requests by status: Declined
-exports.getRequestsByDeclined = async (req, res) => {
-    try {
-        const requests = await Request.find({ status: 2 });
-        res.status(200).json(requests);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Edit request to add comments as it passes down the chainOfCommand
-exports.editRequest = async (req, res) => {
-    try {
-        const { requestId } = req.params;
-        const updatedData = req.body;
-
-        // If chainOfCommand is included in the update, add sentAt timestamps
-        if (updatedData.chainOfCommand) {
-            updatedData.chainOfCommand = updatedData.chainOfCommand.map(command => ({
-                ...command,
-                sentAt: command.sentAt || Date.now(), // use existing timestamp or create a new one
-                comments: command.comments.map(comment => ({
-                    ...comment,
-                    madeAt: comment.madeAt || Date.now() // use existing timestamp or create a new one
-                }))
-            }));
-        }
-
-        const updatedRequest = await Request.findByIdAndUpdate(
-            requestId,
-            { $set: updatedData },
-            { new: true }  // This option requests that MongoDB return the updated document
-        );
-
-        res.status(200).json(updatedRequest);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-
-// Create a request without item price and total price
-exports.createRequest = async (req, res) => {
-    try {
-        const { requestType, project, items, acheivedAmount, chainOfCommand, lastSentBy } = req.body;
-
-        // Validate necessary data based on requestType
-        if (requestType === 'Request Item') {
-            if (!items || items.length === 0) {
-                return res.status(400).json({ message: 'Items array is required for Request Item type' });
-            } else if (acheivedAmount !== null && acheivedAmount !== undefined) {
-                return res.status(400).json({ message: 'Achieved amount is not allowed for Request Item type' });
-            }
-        } else if (requestType === 'Request Payment') {
-            if (acheivedAmount === null || acheivedAmount === undefined) {
-                return res.status(400).json({ message: 'Achieved amount is required for Request Payment type' });
-            } else if (items && items.length > 0) {
-                return res.status(400).json({ message: 'Items array is not allowed for Request Payment type' });
-            }
-        }
-
-        const newRequest = new Request({
-            requestType,
-            project,
-            items: requestType === 'Request Item' ? items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity })) : [],
-            acheivedAmount: requestType === 'Request Payment' ? acheivedAmount : 0,
-            status: 0,
-            chainOfCommand: chainOfCommand.map(command => ({
-                ...command,
-                status: 0, // Adding default status value here
-                sentAt: Date.now(),
-                comments: command.comments.map(comment => ({
-                    ...comment,
-                    madeAt: Date.now()
-                }))
-            })),
-            lastSentBy,
-        });
-
-        const savedRequest = await newRequest.save();
-
-        res.status(201).json(savedRequest);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Get a specific request by requestId
 exports.getRequestById = async (req, res) => {
     try {
-        const { requestId } = req.params;
-        const request = await Request.findById(requestId)
-            .populate('lastSentBy')
+
+        const request = await Request.findById(req.params.id)
+            .populate('project')
             .populate({
-                path: 'chainOfCommand.userId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.nextUserId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.comments.madeBy',
-                model: 'User'
-            })
-            .populate({
-                path: 'project',
-                model: 'Project',
+                path: 'subRequests',
                 populate: {
-                    path: 'contractors projectManager projectDirector',
+                    path: 'sender recipient',
                     model: 'User',
-                    options: { retainNullValues: true }
-                }
+                },
             });
 
         if (!request) {
-            return res.status(404).json({ message: `Request with id ${requestId} not found.` });
+            return res.status(404).json({ message: 'Request not found' });
         }
 
         res.status(200).json(request);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching request', error });
     }
 };
 
-// Controller to get the requests a user made
-exports.getRequestsMadeByUser = async (req, res) => {
-    const { userId } = req.params;
-
+exports.getRequestsByProjectId = async (req, res) => {
     try {
-        const requests = await Request.find({
-            "chainOfCommand.userId": userId
-        }).populate({
-            path: 'project',
-            model: 'Project'
-        })
+        const requests = await Request.find({ project: req.params.projectId })
+            .populate('project')
             .populate({
-                path: 'chainOfCommand.userId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.nextUserId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.comments.madeBy',
-                model: 'User'
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
             });
 
-        const count = requests.length;
-        res.json({
-            data: requests,
-            count: count, metadata: { count: count }
+        if (requests.length === 0) {
+            return res.status(404).json({ message: 'No requests found for this project' });
+        }
+
+        res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching requests', error });
+    }
+};
+
+
+exports.getPendingRequests = async (req, res) => {
+    try {
+        const requests = await Request.find({ globalStatus: 0 })
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+
+        res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching pending requests', error });
+    }
+};
+
+exports.getApprovedRequests = async (req, res) => {
+    try {
+        const requests = await Request.find({ globalStatus: 1 })
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+
+        res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching approved requests', error });
+    }
+};
+
+exports.getDeclinedRequests = async (req, res) => {
+    try {
+        const requests = await Request.find({ globalStatus: 2 })
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+
+        res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching declined requests', error });
+    }
+};
+
+
+exports.createSubRequest = async (req, res) => {
+    try {
+        console.log("1. Start createSubRequest");
+
+        // Get request ID from parameters
+        const requestId = req.params.requestId;
+        console.log(`2. Request ID: ${requestId}`);
+
+        // Find the corresponding request
+        const request = await Request.findOne({ _id: requestId });
+        console.log(`3. Found request: ${request}`);
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        const { sender, recipient, isFinalized, comments } = req.body;
+        console.log(`4. Request body: ${JSON.stringify(req.body)}`);
+
+        const newSubRequest = new SubRequest({ sender, recipient, isFinalized, subRequestSentAt: new Date(), comments });
+        await newSubRequest.save();
+        console.log(`5. Saved newSubRequest: ${newSubRequest}`);
+
+        request.subRequests.push(newSubRequest._id);
+
+        // Check if it's the last subrequest
+        if (request.subRequests.length > 0 && request.requestType === 'Request Item') {
+            const lastSubRequest = await SubRequest.findById(request.subRequests[request.subRequests.length - 1]).populate('recipient');
+            console.log(`6. Found lastSubRequest: ${lastSubRequest}`);
+
+            if (lastSubRequest) {
+                if (lastSubRequest.recipient.occupation === 'Project Director') request.progress = 25;
+                else if (lastSubRequest.recipient.occupation === 'Procurement') request.progress = 50;
+                else if (lastSubRequest.recipient.occupation === 'Finance') request.progress = 75;
+                else if (lastSubRequest.recipient.occupation === 'Managing Partner') request.progress = 90;
+            }
+        }
+
+        await request.save();
+        console.log(`7. Saved request: ${request}`);
+
+        // Send success response
+        res.status(201).json(newSubRequest);
+    } catch (error) {
+        console.error("Error details:", error); // Log the detailed error
+        res.status(500).json({ message: 'Error creating subrequest', error });
+    }
+};
+
+
+
+
+exports.createRequest = async (req, res) => {
+    try {
+        // Extract fields for the request
+        const {
+            requestType,
+            project,
+            acheivedAmount,
+            items,
+            globalStatus = 0,
+            isFinalized = false,
+        } = req.body;
+
+        // Extract fields for the subrequest
+        const {
+            sender,
+            recipient,
+            comments,
+        } = req.body.subRequest; // Assuming subrequest data is nested under "subRequest"
+
+        // Validate fields if necessary
+
+        // Create a new subrequest using Mongoose with the current timestamp
+        const newSubRequest = new SubRequest({
+            sender,
+            recipient,
+            subRequestSentAt: new Date(), // Set to current timestamp
+            comments,
         });
 
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server error');
+        await newSubRequest.save();
+
+        // Create a new request object and include the subrequest ID
+        const newRequest = new Request({
+            requestType,
+            project,
+            acheivedAmount,
+            items,
+            globalStatus,
+            isFinalized,
+            subRequests: [newSubRequest._id], // Include the new subrequest
+        });
+
+        // Save the new request using Mongoose
+        await newRequest.save();
+
+        // Send success response
+        res.status(201).json(newRequest);
+    } catch (error) {
+        // Handle error
+        res.status(500).json({ message: 'Error creating request and subrequest', error });
+    }
+};
+
+exports.getRequestBySender = async (req, res) => {
+    try {
+        // Get user ID from parameters or authentication context
+        const userId = req.params.userId; // Adjust as needed based on how user ID is passed
+
+        // Find requests where the user is the sender of any subrequest
+        const requests = await Request.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { sender: userId },
+                populate: { // Nested populate to get recipient details
+
+                    path: 'recipient',
+                    select: 'fName lName'
+                }
+            })
+            .populate('project') // Assume the project contains a 'name' field
+            .exec();
+
+        // Filter out requests where user is not a sender in any subrequest
+        const requestsWithSender = requests.filter(request => request.subRequests.length > 0);
+
+        // Extract the desired fields
+        const extractedData = requestsWithSender.map(request => ({
+            _id: request._id,
+            projectName: request.project.projectName, // Assuming the project has a 'name' field
+            requestType: request.requestType,
+            recipient: { // Assuming there's exactly one subrequest, extract the recipient details
+                fName: request.subRequests[0].recipient.fName,
+                lName: request.subRequests[0].recipient.lName
+            },
+            globalStatus: request.globalStatus,
+            requestID: request.requestID,
+            isFinalized: request.subRequests[0].isFinalized, // Include isFinalized from subrequest
+
+        }));
+        const count = extractedData.length;
+
+        res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
+    } catch (error) {
+        // Handle error
+        res.status(500).json({ message: 'Error getting requests by sender', error });
+    }
+};
+exports.getRequestByReceiver = async (req, res) => {
+    try {
+        // Get user ID from parameters or authentication context
+        const userId = req.params.userId; // Adjust as needed based on how user ID is passed
+
+        // Find requests where the user is the sender of any subrequest
+        const requests = await Request.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { recipient: userId },
+                populate: { // Nested populate to get recipient details
+                    path: 'sender',
+                    select: 'fName lName' // Only select the fName and lName fields
+                }
+            })
+            .populate('project') // Assume the project contains a 'name' field
+            .exec();
+
+        // Filter out requests where user is not a sender in any subrequest
+        const requestsWithSender = requests.filter(request => request.subRequests.length > 0);
+
+        // Extract the desired fields
+        const extractedData = requestsWithSender.map(request => ({
+            _id: request._id,
+            projectName: request.project.projectName, // Assuming the project has a 'name' field
+            requestType: request.requestType,
+            sender: { // Assuming there's exactly one subrequest, extract the recipient details
+                fName: request.subRequests[0].sender.fName,
+                lName: request.subRequests[0].sender.lName
+            },
+            globalStatus: request.globalStatus,
+            requestID: request.requestID,
+            isFinalized: request.subRequests[0].isFinalized, // Include isFinalized from subrequest
+
+        }));
+        const count = extractedData.length;
+
+        res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
+    } catch (error) {
+        // Handle error
+        res.status(500).json({ message: 'Error getting requests by sender', error });
+    }
+};
+
+exports.updatePreviousSubRequest = async (req, res) => {
+    try {
+        // Get request ID and isFinalized from request payload
+        const requestId = req.params.requestId;
+        const { isFinalized } = req.body;
+
+        // Find the corresponding request
+        const request = await Request.findOne({ _id: requestId });
+        if (!request || request.subRequests.length === 0) {
+            return res.status(404).json({ message: 'Request not found or no subrequests available' });
+        }
+
+        // Find the last subrequest
+        const lastSubRequestId = request.subRequests[request.subRequests.length - 2];
+
+        // Find the subrequest by ID and update isFinalized
+        const subRequest = await SubRequest.findById(lastSubRequestId);
+        if (!subRequest) {
+            return res.status(404).json({ message: 'SubRequest not found' });
+        }
+
+        subRequest.isFinalized = isFinalized;
+        await subRequest.save();
+
+        // Send success response
+        res.status(200).json({ message: 'SubRequest updated successfully', subRequest });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating subrequest', error });
+    }
+};
+
+exports.editSubRequest = async (req, res) => {
+    try {
+        const subrequestId = req.params.subrequestId;
+        const { isFinalized } = req.body;
+        const subRequest = await SubRequest.findById({ _id: subrequestId });
+        if (!subRequest) {
+            return res.status(404).json({ message: 'SubRequest not found' });
+        }
+        subRequest.isFinalized = isFinalized;
+        await subRequest.save();
+        res.status(200).json({ message: 'SubRequest updated successfully', subRequest });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating subrequest', error });
+
     }
 }
 
-// Controller to get the requests a user received
-exports.getRequestsReceivedByUser = async (req, res) => {
-    const { userId } = req.params;
-
+exports.editRequest = async (req, res) => {
     try {
-        const requests = await Request.find({
-            "chainOfCommand.nextUserId": userId
-        }).populate({
-            path: 'project',
-            model: 'Project'
-        })
-            .populate({
-                path: 'chainOfCommand.userId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.nextUserId',
-                model: 'User'
-            })
-            .populate({
-                path: 'chainOfCommand.comments.madeBy',
-                model: 'User'
-            });
+        const requestId = req.params.requestId;
+        const { globalStatus } = req.body;
+        const request = await Request.findById({ _id: requestId });
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+        request.globalStatus = globalStatus;
+        await request.save();
+        res.status(200).json({ message: 'Request updated successfully', request });
 
-        const count = requests.length;
-        res.json({
-            data: requests,
-            count: count, metadata: { count: count }
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server error');
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating Request', error });
     }
 }
+
+exports.checkRecipient = async (req, res) => {
+    const { userId, requestId } = req.params; // Assuming that userId and requestId are passed as URL parameters
+
+    try {
+        const request = await Request.findById(requestId).populate('subRequests');
+
+        if (!request) {
+            return res.status(404).send({ message: 'Request not found' });
+        }
+
+        const lastSubRequest = request.subRequests[request.subRequests.length - 1];
+
+        if (!lastSubRequest) {
+            return res.status(404).send({ message: 'No SubRequest found' });
+        }
+
+        const subRequest = await SubRequest.findById(lastSubRequest._id);
+
+        if (!subRequest) {
+            return res.status(404).send({ message: 'SubRequest not found' });
+        }
+
+        if (subRequest.recipient.toString() === userId.toString()) {
+            return res.status(200).send({ isRecipient: true });
+        } else {
+            return res.status(200).send({ isRecipient: false });
+        }
+    } catch (error) {
+        return res.status(500).send({ message: 'An error occurred', error });
+    }
+};

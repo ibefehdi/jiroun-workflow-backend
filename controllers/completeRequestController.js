@@ -1,4 +1,5 @@
 const Request = require('../models/completeRequest');
+const Request2 = require('../models/requestSchema2');
 const mongoose = require('mongoose');
 
 exports.createCompleteRequest = async (req, res) => {
@@ -19,42 +20,52 @@ exports.createCompleteRequest = async (req, res) => {
             }
         }
 
-        let previousItems = [];
+        let previousAllRequests = [];
 
+        // If there is a previous request ID, find the previous request using Request2 model and get its allRequests field
         if (previousRequestId) {
-            const previousRequest = await Request.findById(previousRequestId);
+            const previousRequest = await Request2.findById(previousRequestId);
             if (previousRequest) {
-                previousItems = previousRequest.allRequests || [];
+                previousAllRequests = previousRequest.allRequests || [];
             }
         }
 
         const newRequest = new Request({
             requestType,
             project,
-            sender, // recipient removed here
+            sender,
             items: requestType === 'Request Item' ? items.map(item => ({ itemName: item.itemName, itemQuantity: item.itemQuantity, unitPrice: item.unitPrice, totalPrice: item.totalPrice })) : [],
             acheivedAmount: requestType === 'Request Payment' ? acheivedAmount : 0,
             status: 0,
             comments,
             sentAt: Date.now()
-        })
+        });
         const savedRequest = await newRequest.save();
-        savedRequest.allRequests.push(savedRequest._id);
-        if (previousItems.length > 0) {
-            savedRequest.allRequests.push(...previousItems);
-        }
+
+        // Combine the allRequests of the saved request with the previousAllRequests
+        savedRequest.allRequests = [savedRequest._id, ...previousAllRequests];
+
         await savedRequest.save();
 
         res.status(201).json(savedRequest);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
-}
+};
 
 
 exports.getAllCompleteRequests = async (req, res) => {
     try {
-        const completeRequests = await Request.find().populate('project sender recipient recipientRequestId previousRequestId');
+        const completeRequests = await Request.find().populate('project sender recipient recipientRequestId previousRequestId').populate({
+            path: 'allRequests',
+            model: 'Request2',
+            select: 'sentAt comments sender',
+            populate: {
+                path: 'sender',
+                model: 'User',
+                select: 'fName lName'
+            }
+        });;
         const count = await Request.count();
         res.status(200).json({ data: completeRequests, count: count, metadata: { total: count } });
     } catch (error) {
