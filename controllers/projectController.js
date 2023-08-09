@@ -12,7 +12,7 @@ exports.getProjectsCount = async (req, res) => {
 }
 exports.getAllProjects = async (req, res) => {
     try {
-        const projects = await Project.find().populate('requests')
+        const projects = await Project.find()
             .populate('contractors')
             .populate('projectManager')
             .populate('projectDirector');;
@@ -107,7 +107,7 @@ exports.getUserProjects = async (req, res) => {
                 { projectManager: new mongoose.Types.ObjectId(userId) },
                 { projectDirector: new mongoose.Types.ObjectId(userId) }
             ]
-        }).populate('requests').populate('contractors').populate('projectManager').populate('projectDirector');
+        }).populate('contractors').populate('projectManager').populate('projectDirector');
         const count = projects.length;
         res.status(200).json({
             data: projects,
@@ -122,20 +122,7 @@ exports.getUserProjects = async (req, res) => {
 };
 
 
-exports.getProjectRequests = async (req, res) => {
-    const { projectId } = req.params;
 
-    try {
-        const project = await Project.findById(projectId).populate('requests');
-        if (project) {
-            res.status(200).json(project.requests);
-        } else {
-            res.status(404).json({ message: 'Project not found' });
-        }
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
 
 // get projectDirectors by projectId
 exports.getProjectDirectors = async (req, res) => {

@@ -1,7 +1,21 @@
 const mongoose = require('mongoose');
-const completeRequest = new mongoose.Schema({
+
+
+
+const completeSubRequestSchema = new mongoose.Schema({
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    isFinalized: { type: Number, enum: [0, 1, 2], default: 0 },
+    subRequestSentAt: { type: Date },
+    comments: { type: String, required: true },
+}, { timestamps: true });
+
+const CompleteSubRequest = mongoose.model('CompleteSubRequestSchema', completeSubRequestSchema);
+
+const completeRequestSchema = new mongoose.Schema({
     requestType: String,
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+    acheivedAmount: { type: Number },
     items: [{
         itemName: { type: String },
         itemQuantity: { type: String },
@@ -9,14 +23,18 @@ const completeRequest = new mongoose.Schema({
         unitPrice: { type: String },
         totalPrice: { type: String },
     }],
-    acheivedAmount: { type: Number },
-    status: { type: Number, enum: [0, 1, 2], default: 0 },
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    recipientRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Request2' },
-    previousRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Request2' },
-    allRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Request2' }],
-    sentAt: { type: Date },
-    comments: { type: String }
-})
-module.exports = mongoose.model('CompleteRequest', completeRequest);
+    subRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubRequest' }],
+    globalStatus: { type: Number, enum: [0, 1, 2], default: 0 },
+    requestID: { type: Number },
+    progress: { type: Number, default: 100 }
+
+}, { timestamps: true })
+
+
+
+
+const CompleteRequest = mongoose.model('CompleteRequest', completeRequestSchema);
+
+
+module.exports.SubRequest = CompleteSubRequest;
+module.exports.Request = CompleteRequest;
