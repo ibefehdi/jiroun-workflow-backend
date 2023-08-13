@@ -13,7 +13,10 @@ const {
     getRequestByReceiver,
     editSubRequest,
     editRequest,
-    checkRecipient
+    checkRecipient,
+    getRequestsCount,
+    deleteRequest,
+    editRequestItems
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -42,4 +45,8 @@ router.get('/requests/receiver/:userId', getRequestByReceiver)
 router.put('/subrequests/:subrequestId', editSubRequest)
 router.put('/requests/:requestId', editRequest)
 router.get('/checkRecipient/:userId/:requestId', checkRecipient);
+router.put('/editrequests/:requestId', editRequestItems)
+router.get('/requestscount/', getRequestsCount);
+
+router.post('/deleteRequest/:id', deleteRequest);
 module.exports = router;

@@ -1,4 +1,4 @@
-const { Request, SubRequest, Counter } = require('../models/requestSchema');
+const { Request, SubRequest, Counter, DeletedRequest } = require('../models/requestSchema');
 const mongoose = require('mongoose');
 
 
@@ -123,32 +123,22 @@ exports.getDeclinedRequests = async (req, res) => {
 
 exports.createSubRequest = async (req, res) => {
     try {
-        console.log("1. Start createSubRequest");
-
-        // Get request ID from parameters
         const requestId = req.params.requestId;
-        console.log(`2. Request ID: ${requestId}`);
 
-        // Find the corresponding request
         const request = await Request.findOne({ _id: requestId });
-        console.log(`3. Found request: ${request}`);
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
         const { sender, recipient, isFinalized, comments } = req.body;
-        console.log(`4. Request body: ${JSON.stringify(req.body)}`);
 
         const newSubRequest = new SubRequest({ sender, recipient, isFinalized, subRequestSentAt: new Date(), comments });
         await newSubRequest.save();
-        console.log(`5. Saved newSubRequest: ${newSubRequest}`);
 
         request.subRequests.push(newSubRequest._id);
 
-        // Check if it's the last subrequest
         if (request.subRequests.length > 0 && request.requestType === 'Request Item') {
             const lastSubRequest = await SubRequest.findById(request.subRequests[request.subRequests.length - 1]).populate('recipient');
-            console.log(`6. Found lastSubRequest: ${lastSubRequest}`);
 
             if (lastSubRequest) {
                 if (lastSubRequest.recipient.occupation === 'Project Director') request.progress = 25;
@@ -159,8 +149,6 @@ exports.createSubRequest = async (req, res) => {
         }
 
         await request.save();
-        console.log(`7. Saved request: ${request}`);
-
         // Send success response
         res.status(201).json(newSubRequest);
     } catch (error) {
@@ -225,43 +213,77 @@ exports.createRequest = async (req, res) => {
     }
 };
 
+exports.editRequestItems = async (req, res) => {
+    try {
+        const requestId = req.params.requestId;
+
+        // Find the request object using the request ID
+        const request = await Request.findById(requestId);
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // Extract the items from the request body
+        const updatedItems = req.body.items;
+
+        // Iterate through the updated items and match them with the existing items in the request
+        updatedItems.forEach(updatedItem => {
+            const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
+            if (existingItem) {
+                existingItem.unitPrice = updatedItem.unitPrice;
+                existingItem.totalPrice = updatedItem.totalPrice;
+            }
+        });
+
+        // Save the request with the updated items
+        await request.save();
+
+        // Send success response
+        res.status(200).json(request);
+    } catch (error) {
+        console.error("Error details:", error); // Log the detailed error
+        res.status(500).json({ message: 'Error updating request items', error });
+    }
+};
+
+
 exports.getRequestBySender = async (req, res) => {
     try {
-        // Get user ID from parameters or authentication context
-        const userId = req.params.userId; // Adjust as needed based on how user ID is passed
+        const userId = req.params.userId;
 
-        // Find requests where the user is the sender of any subrequest
         const requests = await Request.find({})
             .populate({
                 path: 'subRequests',
                 model: SubRequest,
                 match: { sender: userId },
-                populate: { // Nested populate to get recipient details
-
+                populate: {
                     path: 'recipient',
                     select: 'fName lName'
                 }
             })
-            .populate('project') // Assume the project contains a 'name' field
+            .populate('project')
             .exec();
 
-        // Filter out requests where user is not a sender in any subrequest
-        const requestsWithSender = requests.filter(request => request.subRequests.length > 0);
 
-        // Extract the desired fields
-        const extractedData = requestsWithSender.map(request => ({
-            _id: request._id,
-            projectName: request.project.projectName, // Assuming the project has a 'name' field
-            requestType: request.requestType,
-            recipient: { // Assuming there's exactly one subrequest, extract the recipient details
-                fName: request.subRequests[0].recipient.fName,
-                lName: request.subRequests[0].recipient.lName
-            },
-            globalStatus: request.globalStatus,
-            requestID: request.requestID,
-            isFinalized: request.subRequests[0].isFinalized, // Include isFinalized from subrequest
+        const extractedData = [];
+        requests.forEach(request => {
+            request.subRequests.forEach(subRequest => {
+                if (subRequest.sender._id.toString() === userId) {
+                    extractedData.push({
+                        _id: request._id,
+                        requestID: request.requestID,
+                        isFinalized: subRequest.isFinalized,
+                        projectName: request.project.projectName,
+                        requestType: request.requestType,
+                        recipient: {
+                            fName: subRequest.recipient.fName,
+                            lName: subRequest.recipient.lName
+                        }
+                    });
+                }
+            });
+        });
 
-        }));
         const count = extractedData.length;
 
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
@@ -272,48 +294,50 @@ exports.getRequestBySender = async (req, res) => {
 };
 exports.getRequestByReceiver = async (req, res) => {
     try {
-        // Get user ID from parameters or authentication context
-        const userId = req.params.userId; // Adjust as needed based on how user ID is passed
+        const userId = req.params.userId;
 
-        // Find requests where the user is the sender of any subrequest
         const requests = await Request.find({})
             .populate({
                 path: 'subRequests',
                 model: SubRequest,
                 match: { recipient: userId },
-                populate: { // Nested populate to get recipient details
+                populate: {
                     path: 'sender',
-                    select: 'fName lName' // Only select the fName and lName fields
+                    select: 'fName lName'
                 }
             })
-            .populate('project') // Assume the project contains a 'name' field
+            .populate('project')
             .exec();
 
-        // Filter out requests where user is not a sender in any subrequest
-        const requestsWithSender = requests.filter(request => request.subRequests.length > 0);
 
-        // Extract the desired fields
-        const extractedData = requestsWithSender.map(request => ({
-            _id: request._id,
-            projectName: request.project.projectName, // Assuming the project has a 'name' field
-            requestType: request.requestType,
-            sender: { // Assuming there's exactly one subrequest, extract the recipient details
-                fName: request.subRequests[0].sender.fName,
-                lName: request.subRequests[0].sender.lName
-            },
-            globalStatus: request.globalStatus,
-            requestID: request.requestID,
-            isFinalized: request.subRequests[0].isFinalized, // Include isFinalized from subrequest
+        const extractedData = [];
+        requests.forEach(request => {
+            request.subRequests.forEach(subRequest => {
+                if (subRequest.recipient._id.toString() === userId) {
+                    extractedData.push({
+                        _id: request._id,
+                        requestID: request.requestID,
+                        isFinalized: subRequest.isFinalized,
+                        projectName: request.project.projectName,
+                        requestType: request.requestType,
+                        sender: {
+                            fName: subRequest.sender.fName,
+                            lName: subRequest.sender.lName
+                        }
+                    });
+                }
+            });
+        });
 
-        }));
         const count = extractedData.length;
 
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
     } catch (error) {
-        // Handle error
-        res.status(500).json({ message: 'Error getting requests by sender', error });
+        res.status(500).json({ message: 'Error getting requests by receiver', error });
     }
 };
+
+
 
 exports.updatePreviousSubRequest = async (req, res) => {
     try {
@@ -412,3 +436,48 @@ exports.checkRecipient = async (req, res) => {
         return res.status(500).send({ message: 'An error occurred', error });
     }
 };
+
+
+
+exports.getRequestsCount = async (req, res) => {
+    try {
+        const requests = await Request.countDocuments();
+        res.status(200).json({ count: requests })
+    }
+    catch (err) {
+        res.status(500).json({ message: err.message });
+
+    }
+}
+exports.deleteRequest = async (req, res) => {
+    try {
+        // Find the request by ID
+        const request = await Request.findById(req.params.id);
+
+        // If no request found, handle it accordingly
+        if (!request) {
+            return res.status(404).send('Request not found');
+        }
+
+        // Get comments from the request body
+        const comments = req.body.comments;
+
+        // Create a new DeletedRequest using the found request's data and the comments
+        const deletedRequest = new DeletedRequest({
+            ...request.toObject(),
+            comments
+        });
+        await deletedRequest.save();
+
+        // Delete the request from the original collection
+        await Request.findByIdAndDelete(req.params.id); // Updated line
+
+        // Send a success response
+        res.status(200).send('Request deleted successfully');
+    } catch (err) {
+        // Log the full error to the console
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+
+}
