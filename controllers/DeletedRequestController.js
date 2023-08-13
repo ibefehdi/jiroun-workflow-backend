@@ -23,3 +23,34 @@ exports.getAllDeletedRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching requests', error: error.message });
     }
 };
+exports.getRequestById = async (req, res) => {
+    try {
+
+        const request = await DeletedRequest.findById(req.params.id)
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        res.status(200).json(request);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching request', error });
+    }
+};
+
+exports.getDeletedRequestCount = async (req, res) => {
+    try {
+        const count = await DeletedRequest.countDocuments();
+        res.status(200).json({ count: count });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching request', error });
+    }
+}
