@@ -28,24 +28,11 @@ const requestSchema = new mongoose.Schema({
         totalPrice: { type: String },
     }],
     subRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubRequest' }],
-    globalStatus: { type: Number, enum: [0, 1, 2], default: 0 },
-    requestID: { type: Number }, //Sequential ID
-    progress: { type: Number, default: 0 } // 0 means the first step, 1 the second, etc.
+    globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
+    requestID: { type: Number }, 
+    progress: { type: Number, default: 0 } 
 
 }, { timestamps: true })
-
-const getProgressFromOccupation = (occupation) => {
-    switch (occupation) {
-        case 'Project Director': return 25;
-        case 'Procurement': return 50;
-        case 'Finance': return 75;
-        case 'Managing Partner': return 90;
-        default: return 0; // Default case if occupation doesn't match any of the above
-    }
-}
-
-
-
 
 
 requestSchema.pre('save', async function (next) {
@@ -80,7 +67,14 @@ requestSchema.pre('save', async function (next) {
 
 const Request = mongoose.model('Request', requestSchema);
 
+const deletedRequestSchema = new mongoose.Schema({
+    ...requestSchema.obj,
+    comments: { type: String }
+});
+const DeletedRequest = mongoose.model('DeletedRequest', deletedRequestSchema);
+
 
 module.exports.Counter = Counter;
 module.exports.SubRequest = SubRequest;
 module.exports.Request = Request;
+module.exports.DeletedRequest = DeletedRequest;
