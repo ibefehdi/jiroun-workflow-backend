@@ -16,7 +16,9 @@ const {
     checkRecipient,
     getRequestsCount,
     deleteRequest,
-    editRequestItems
+    editRequestItems,
+    getAllSendersInRequest, 
+    createCompleteRequest
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -47,6 +49,8 @@ router.put('/requests/:requestId', editRequest)
 router.get('/checkRecipient/:userId/:requestId', checkRecipient);
 router.put('/editrequests/:requestId', editRequestItems)
 router.get('/requestscount/', getRequestsCount);
-
+router.get('/getSenders/:id', getAllSendersInRequest)
 router.post('/deleteRequest/:id', deleteRequest);
+router.post('/createRequest/:id', createRequest);
+router.post('/completeRequest/request/:id', createCompleteRequest)
 module.exports = router;

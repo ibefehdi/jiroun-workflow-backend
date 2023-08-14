@@ -1,4 +1,4 @@
-const { Request, SubRequest, Counter, DeletedRequest } = require('../models/requestSchema');
+const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest } = require('../models/requestSchema');
 const mongoose = require('mongoose');
 
 
@@ -13,8 +13,8 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             });
-
-        res.status(200).json(requests);
+        const count = await Request.count()
+        res.status(200).json({ data: requests, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching requests', error });
     }
@@ -83,7 +83,31 @@ exports.getPendingRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching pending requests', error });
     }
 };
+exports.getAllSendersInRequest = async (req, res) => {
+    try {
+        // Find the request by ID and populate the 'sender' field in 'subRequests'
+        const request = await Request.findById(req.params.id)
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender',
+                    model: 'User',
+                    select: 'fName lName username'
+                },
+            });
 
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // Extract the senders from the subRequests
+        const senders = request.subRequests.map(subRequest => subRequest.sender);
+
+        res.status(200).json(senders);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching senders', error });
+    }
+};
 exports.getApprovedRequests = async (req, res) => {
     try {
         const requests = await Request.find({ globalStatus: 1 })
@@ -145,6 +169,7 @@ exports.createSubRequest = async (req, res) => {
                 else if (lastSubRequest.recipient.occupation === 'Procurement') request.progress = 50;
                 else if (lastSubRequest.recipient.occupation === 'Finance') request.progress = 75;
                 else if (lastSubRequest.recipient.occupation === 'Managing Partner') request.progress = 90;
+
             }
         }
 
@@ -391,12 +416,13 @@ exports.editSubRequest = async (req, res) => {
 exports.editRequest = async (req, res) => {
     try {
         const requestId = req.params.requestId;
-        const { globalStatus } = req.body;
+        const { globalStatus, progress } = req.body;
         const request = await Request.findById({ _id: requestId });
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
         request.globalStatus = globalStatus;
+        request.progress = progress;
         await request.save();
         res.status(200).json({ message: 'Request updated successfully', request });
 
@@ -476,6 +502,31 @@ exports.deleteRequest = async (req, res) => {
         res.status(200).send('Request deleted successfully');
     } catch (err) {
         // Log the full error to the console
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+
+}
+exports.createCompleteRequest = async (req, res) => {
+    try {
+        // Find the request by ID
+        const request = await Request.findById(req.params.id);
+
+        // If no request found, handle it accordingly
+        if (!request) {
+            return res.status(404).send('Request not found');
+        }
+
+        const comments = req.body.comments;
+        const progress = req.body.progress;
+        const completedRequest = new CompletedRequest({
+            ...request.toObject(),
+            comments,
+            progress
+        });
+        await completedRequest.save();
+        res.status(200).send('Request deleted successfully');
+    } catch (err) {
         console.error(err);
         res.status(500).send(err.message);
     }
