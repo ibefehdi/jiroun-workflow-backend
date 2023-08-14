@@ -29,8 +29,8 @@ const requestSchema = new mongoose.Schema({
     }],
     subRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubRequest' }],
     globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
-    requestID: { type: Number }, 
-    progress: { type: Number, default: 0 } 
+    requestID: { type: Number },
+    progress: { type: Number, default: 0 }
 
 }, { timestamps: true })
 
@@ -72,9 +72,14 @@ const deletedRequestSchema = new mongoose.Schema({
     comments: { type: String }
 });
 const DeletedRequest = mongoose.model('DeletedRequest', deletedRequestSchema);
-
+const completedRequestSchema = new mongoose.Schema({
+    ...requestSchema.obj,
+    comments: { type: String }
+});
+const CompletedRequest = mongoose.model('CompletedRequest', completedRequestSchema);
 
 module.exports.Counter = Counter;
 module.exports.SubRequest = SubRequest;
 module.exports.Request = Request;
 module.exports.DeletedRequest = DeletedRequest;
+module.exports.CompletedRequest = CompletedRequest;
