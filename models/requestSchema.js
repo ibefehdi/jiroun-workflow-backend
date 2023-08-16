@@ -19,7 +19,7 @@ const SubRequest = mongoose.model('SubRequest', subRequestSchema);
 const requestSchema = new mongoose.Schema({
     requestType: String,
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
-    acheivedAmount: { type: Number },
+    totalAmount: { type: Number },
     items: [{
         itemName: { type: String },
         itemQuantity: { type: String },
@@ -27,6 +27,12 @@ const requestSchema = new mongoose.Schema({
         unitPrice: { type: String },
         totalPrice: { type: String },
     }],
+    paymentType: { type: String },
+    estimatedAmount: { type: Number },
+    paidAmount: { type: Number },
+    requiredAmount: { type: Number },
+    totalAmount: { type: Number },
+    contractorForPayment: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     subRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubRequest' }],
     globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
     requestID: { type: Number },
@@ -38,16 +44,14 @@ const requestSchema = new mongoose.Schema({
 requestSchema.pre('save', async function (next) {
     if (this.isNew) {
         try {
-            // Find the counter document and increment it
             const counter = await Counter.findByIdAndUpdate(
-                { _id: 'requestID' }, // Match this string with the identifier used in your Counter collection
+                { _id: 'requestID' },
                 { $inc: { seq: 1 } },
                 { new: true, upsert: true }
             );
 
 
-            // Set the sequential ID to the incremented value of the counter
-            this.requestID = counter.seq; // Match the field name in your schema
+            this.requestID = counter.seq;
 
             if (this.isNew && this.requestType === 'Request Item') {
                 this.progress = 25;
@@ -56,7 +60,7 @@ requestSchema.pre('save', async function (next) {
 
 
         } catch (error) {
-            // Handle the error
+
             next(error);
         }
     } else {

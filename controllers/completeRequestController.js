@@ -13,13 +13,10 @@ exports.getAllCompletedRequests = async (req, res) => {
                 },
             });
         const count = await CompletedRequest.countDocuments();
-        //res.status(200).json(requests)
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });
 
-        // res.status(200).json({ data: requests, count: count, metadata: { total: count } });
     } catch (error) {
-        console.error(error); // Log the error to the console
-
+        console.error(error); 
         res.status(500).json({ message: 'Error fetching requests', error: error.message });
     }
 };
