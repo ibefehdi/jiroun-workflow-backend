@@ -1,5 +1,4 @@
 const User = require('../models/userSchema');
-// require bcrypt for password hashing
 const bcrypt = require('bcrypt');
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;

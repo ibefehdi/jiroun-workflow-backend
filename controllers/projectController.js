@@ -156,3 +156,17 @@ exports.getProjectManagers = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+exports.getContractors = async (req, res) => {
+    const { projectId } = req.params;
+
+    try {
+        const project = await Project.findById(projectId).populate('contractors');
+        if (project) {
+            res.status(200).json(project.contractors);
+        } else {
+            res.status(404).json({ message: 'Project not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};

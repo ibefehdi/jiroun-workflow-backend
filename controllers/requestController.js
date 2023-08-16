@@ -161,11 +161,12 @@ exports.createSubRequest = async (req, res) => {
 
         request.subRequests.push(newSubRequest._id);
 
-        if (request.subRequests.length > 0 && request.requestType === 'Request Item') {
+        if (request.subRequests.length > 0) {
             const lastSubRequest = await SubRequest.findById(request.subRequests[request.subRequests.length - 1]).populate('recipient');
 
             if (lastSubRequest) {
                 if (lastSubRequest.recipient.occupation === 'Project Director') request.progress = 25;
+                else if (lastSubRequest.recipient.occupation === 'Quantity Surveyor') request.progress = 25;
                 else if (lastSubRequest.recipient.occupation === 'Procurement') request.progress = 50;
                 else if (lastSubRequest.recipient.occupation === 'Finance') request.progress = 75;
                 else if (lastSubRequest.recipient.occupation === 'Managing Partner') request.progress = 90;
@@ -191,49 +192,52 @@ exports.createRequest = async (req, res) => {
         const {
             requestType,
             project,
-            acheivedAmount,
+            estimatedAmount,
+            totalAmount,
+            paidAmount,
+            paymentType,
             items,
+            contractorForPayment,
             globalStatus = 0,
             isFinalized = false,
         } = req.body;
 
-        // Extract fields for the subrequest
         const {
             sender,
             recipient,
             comments,
-        } = req.body.subRequest; // Assuming subrequest data is nested under "subRequest"
+        } = req.body.subRequest;
 
-        // Validate fields if necessary
 
-        // Create a new subrequest using Mongoose with the current timestamp
         const newSubRequest = new SubRequest({
             sender,
             recipient,
-            subRequestSentAt: new Date(), // Set to current timestamp
+            subRequestSentAt: new Date(),
             comments,
         });
 
         await newSubRequest.save();
 
-        // Create a new request object and include the subrequest ID
         const newRequest = new Request({
             requestType,
             project,
-            acheivedAmount,
+            estimatedAmount: 0,
+            totalAmount: 0,
+            paidAmount: 0,
+            requiredAmount: 0,
             items,
+            progress: 25,
             globalStatus,
             isFinalized,
-            subRequests: [newSubRequest._id], // Include the new subrequest
+            contractorForPayment,
+            paymentType,
+            subRequests: [newSubRequest._id],
         });
 
-        // Save the new request using Mongoose
         await newRequest.save();
 
-        // Send success response
         res.status(201).json(newRequest);
     } catch (error) {
-        // Handle error
         res.status(500).json({ message: 'Error creating request and subrequest', error });
     }
 };
@@ -248,11 +252,10 @@ exports.editRequestItems = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        // Extract the items from the request body
-        const updatedItems = req.body.items;
-
+        // Extract the items and amounts from the request body
+        const { updatedItems, estimatedAmount, totalAmount, paidAmount, requiredAmount } = req.body;
         // Iterate through the updated items and match them with the existing items in the request
-        updatedItems.forEach(updatedItem => {
+        updatedItems?.forEach(updatedItem => {
             const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
             if (existingItem) {
                 existingItem.unitPrice = updatedItem.unitPrice;
@@ -260,7 +263,11 @@ exports.editRequestItems = async (req, res) => {
             }
         });
 
-        // Save the request with the updated items
+        request.estimatedAmount = estimatedAmount;
+        request.totalAmount = totalAmount;
+        request.paidAmount = paidAmount;
+        request.requiredAmount = requiredAmount;
+        // Save the request with the updated items and amounts
         await request.save();
 
         // Send success response
@@ -432,7 +439,7 @@ exports.editRequest = async (req, res) => {
 }
 
 exports.checkRecipient = async (req, res) => {
-    const { userId, requestId } = req.params; // Assuming that userId and requestId are passed as URL parameters
+    const { userId, requestId } = req.params;
 
     try {
         const request = await Request.findById(requestId).populate('subRequests');
@@ -477,31 +484,24 @@ exports.getRequestsCount = async (req, res) => {
 }
 exports.deleteRequest = async (req, res) => {
     try {
-        // Find the request by ID
         const request = await Request.findById(req.params.id);
 
-        // If no request found, handle it accordingly
         if (!request) {
             return res.status(404).send('Request not found');
         }
 
-        // Get comments from the request body
         const comments = req.body.comments;
 
-        // Create a new DeletedRequest using the found request's data and the comments
         const deletedRequest = new DeletedRequest({
             ...request.toObject(),
             comments
         });
         await deletedRequest.save();
 
-        // Delete the request from the original collection
-        await Request.findByIdAndDelete(req.params.id); // Updated line
+        await Request.findByIdAndDelete(req.params.id);
 
-        // Send a success response
         res.status(200).send('Request deleted successfully');
     } catch (err) {
-        // Log the full error to the console
         console.error(err);
         res.status(500).send(err.message);
     }
@@ -509,10 +509,8 @@ exports.deleteRequest = async (req, res) => {
 }
 exports.createCompleteRequest = async (req, res) => {
     try {
-        // Find the request by ID
         const request = await Request.findById(req.params.id);
 
-        // If no request found, handle it accordingly
         if (!request) {
             return res.status(404).send('Request not found');
         }
