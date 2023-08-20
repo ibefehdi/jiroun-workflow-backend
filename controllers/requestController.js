@@ -25,12 +25,15 @@ exports.getRequestById = async (req, res) => {
 
         const request = await Request.findById(req.params.id)
             .populate('project')
+            .populate('contractorForPayment')
             .populate({
                 path: 'subRequests',
                 populate: {
                     path: 'sender recipient',
                     model: 'User',
-                },
+                }
+
+
             });
 
         if (!request) {
