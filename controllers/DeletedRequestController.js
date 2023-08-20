@@ -16,7 +16,7 @@ exports.getAllDeletedRequests = async (req, res) => {
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });
 
     } catch (error) {
-        console.error(error); 
+        console.error(error);
 
         res.status(500).json({ message: 'Error fetching requests', error: error.message });
     }
@@ -25,7 +25,7 @@ exports.getRequestById = async (req, res) => {
     try {
 
         const request = await DeletedRequest.findById(req.params.id)
-            .populate('project')
+            .populate('project').populate('contractorForPayment')
             .populate({
                 path: 'subRequests',
                 populate: {
