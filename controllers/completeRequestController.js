@@ -3,7 +3,12 @@ const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest } = requi
 const mongoose = require('mongoose');
 exports.getAllCompletedRequests = async (req, res) => {
     try {
-        const requests = await CompletedRequest.find()
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+
+        const skip = (page - 1) * resultsPerPage;
+        const requests = await CompletedRequest.find().skip(skip)
+            .limit(resultsPerPage)
             .populate('project')
             .populate({
                 path: 'subRequests',
@@ -13,10 +18,12 @@ exports.getAllCompletedRequests = async (req, res) => {
                 },
             });
         const count = await CompletedRequest.countDocuments();
+        requests.sort((a, b) => b.requestID - a.requestID);
+
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });
 
     } catch (error) {
-        console.error(error); 
+        console.error(error);
         res.status(500).json({ message: 'Error fetching requests', error: error.message });
     }
 };

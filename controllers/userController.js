@@ -85,6 +85,10 @@ exports.loginUser = async (req, res, next) => {
 }
 exports.getAllUsers = async (req, res, next) => {
     try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+
+        const skip = (page - 1) * resultsPerPage;
         const users = await User.find({}, {
             _id: 1,
             username: 1,
@@ -92,7 +96,8 @@ exports.getAllUsers = async (req, res, next) => {
             lName: 1,
             occupation: 1,
             superAdmin: 1,
-        });
+        }).skip(skip)
+            .limit(resultsPerPage);
 
         // Get the count of all users
         const count = await User.countDocuments();
