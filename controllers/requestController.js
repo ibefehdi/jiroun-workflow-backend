@@ -4,8 +4,20 @@ const mongoose = require('mongoose');
 
 exports.getAllRequests = async (req, res) => {
     try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+
+        const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find()
-            .populate('project')
+            .skip(skip)
+            .limit(resultsPerPage)
+            .populate('project').populate({
+                path: 'project',
+                populate: {
+                    path: 'contractors projectManager projectDirector',
+                    model: 'User',
+                }
+            })
             .populate({
                 path: 'subRequests',
                 populate: {
@@ -285,7 +297,9 @@ exports.editRequestItems = async (req, res) => {
 exports.getRequestBySender = async (req, res) => {
     try {
         const userId = req.params.userId;
-
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+        const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find({})
             .populate({
                 path: 'subRequests',
@@ -320,6 +334,7 @@ exports.getRequestBySender = async (req, res) => {
         });
 
         const count = extractedData.length;
+        extractedData.sort((a, b) => b.requestID - a.requestID);
 
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
     } catch (error) {
@@ -330,8 +345,11 @@ exports.getRequestBySender = async (req, res) => {
 exports.getRequestByReceiver = async (req, res) => {
     try {
         const userId = req.params.userId;
-
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+        const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find({})
+
             .populate({
                 path: 'subRequests',
                 model: SubRequest,
@@ -343,7 +361,6 @@ exports.getRequestByReceiver = async (req, res) => {
             })
             .populate('project')
             .exec();
-
 
         const extractedData = [];
         requests.forEach(request => {
@@ -363,9 +380,9 @@ exports.getRequestByReceiver = async (req, res) => {
                 }
             });
         });
+        extractedData.sort((a, b) => b.requestID - a.requestID);
 
         const count = extractedData.length;
-
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error getting requests by receiver', error });

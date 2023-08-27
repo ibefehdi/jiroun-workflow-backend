@@ -12,12 +12,18 @@ exports.getProjectsCount = async (req, res) => {
 }
 exports.getAllProjects = async (req, res) => {
     try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
 
+        const skip = (page - 1) * resultsPerPage;
         const projects = await Project.find()
+            .skip(skip)
+            .limit(resultsPerPage)
             .populate('contractors')
             .populate('projectManager')
-            .populate('projectDirector');;
+            .populate('projectDirector');
         const count = await Project.countDocuments();
+        
         res.status(200).json({
             data: projects,
             count: count,
@@ -29,6 +35,7 @@ exports.getAllProjects = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
 
 // create a new project
 exports.createProject = async (req, res) => {
