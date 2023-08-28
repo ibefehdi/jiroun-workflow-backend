@@ -21,9 +21,10 @@ exports.getAllProjects = async (req, res) => {
             .limit(resultsPerPage)
             .populate('contractors')
             .populate('projectManager')
+            .populate('foremen')
             .populate('projectDirector');
         const count = await Project.countDocuments();
-        
+
         res.status(200).json({
             data: projects,
             count: count,
@@ -47,6 +48,7 @@ exports.createProject = async (req, res) => {
         contractors: req.body.contractors,
         projectManager: req.body.projectManager,
         projectDirector: req.body.projectDirector,
+        foremen: req.body.foremen
     });
 
     try {
@@ -113,9 +115,10 @@ exports.getUserProjects = async (req, res) => {
             $or: [
                 { contractors: new mongoose.Types.ObjectId(userId) },
                 { projectManager: new mongoose.Types.ObjectId(userId) },
-                { projectDirector: new mongoose.Types.ObjectId(userId) }
+                { projectDirector: new mongoose.Types.ObjectId(userId) },
+                { foremen: new mongoose.Types.ObjectId(userId) }
             ]
-        }).populate('contractors').populate('projectManager').populate('projectDirector');
+        }).populate('contractors').populate('projectManager').populate('projectDirector').populate('foremen');
         const count = projects.length;
         res.status(200).json({
             data: projects,

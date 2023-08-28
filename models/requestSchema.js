@@ -17,9 +17,13 @@ const subRequestSchema = new mongoose.Schema({
 const SubRequest = mongoose.model('SubRequest', subRequestSchema);
 
 const requestSchema = new mongoose.Schema({
+    //Main Request
     requestType: String,
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
-    totalAmount: { type: Number },
+    globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
+    requestID: { type: Number },
+    progress: { type: Number, default: 0 },
+    //Request Item
     items: [{
         itemName: { type: String },
         itemQuantity: { type: String },
@@ -27,16 +31,20 @@ const requestSchema = new mongoose.Schema({
         unitPrice: { type: String },
         totalPrice: { type: String },
     }],
+    //Request Payment
     paymentType: { type: String },
     estimatedAmount: { type: Number },
     paidAmount: { type: Number },
     requiredAmount: { type: Number },
     totalAmount: { type: Number },
     contractorForPayment: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    //Subrequests
     subRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubRequest' }],
-    globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
-    requestID: { type: Number },
-    progress: { type: Number, default: 0 }
+    //Request Labour
+    noOfLabour: { type: Number },
+    priceOfLabour: { type: Number },
+    transportationPrice: { type: Number },
+
 
 }, { timestamps: true })
 
