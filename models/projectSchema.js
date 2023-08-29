@@ -7,7 +7,11 @@ const projectSchema = new mongoose.Schema({
     contractors: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-    }],                                            
+    }],    
+    foremen: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    }],                                         
     projectManager: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
