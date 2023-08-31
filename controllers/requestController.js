@@ -316,6 +316,7 @@ exports.getRequestBySender = async (req, res) => {
                     select: 'fName lName'
                 }
             })
+
             .populate('project')
             .exec();
 
@@ -329,6 +330,7 @@ exports.getRequestBySender = async (req, res) => {
                         requestID: request.requestID,
                         isFinalized: subRequest.isFinalized,
                         projectName: request.project.projectName,
+                        subRequestSentAt: subRequest.subRequestSentAt,
                         requestType: request.requestType,
                         recipient: {
                             fName: subRequest.recipient.fName,
@@ -363,6 +365,7 @@ exports.getRequestByReceiver = async (req, res) => {
                 populate: {
                     path: 'sender',
                     select: 'fName lName'
+
                 }
             })
             .populate('project')
@@ -376,6 +379,7 @@ exports.getRequestByReceiver = async (req, res) => {
                         _id: request._id,
                         requestID: request.requestID,
                         isFinalized: subRequest.isFinalized,
+                        subRequestSentAt: subRequest.subRequestSentAt,
                         projectName: request.project.projectName,
                         requestType: request.requestType,
                         sender: {
