@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
     fName: { type: String, required: true },
     lName: { type: String, required: true },
     occupation: { type: String, required: true },
+    hasChangedPassword: { type: Boolean, default: false },
     superAdmin: { type: Boolean, required: true },     // The superAdmin property is required and must be a boolean. Only difference is that a superAdmin can add new users to the database.
     password: { type: String, required: true }
 });

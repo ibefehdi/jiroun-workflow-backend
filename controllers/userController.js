@@ -14,6 +14,48 @@ exports.getUsersCount = async (req, res) => {
 
     }
 }
+exports.changePassword = async (req, res) => {
+    const { id } = req.params;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!id || !oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Please provide userId, oldPassword and newPassword." });
+    }
+
+    try {
+        // Fetch user by ID
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // Compare old password with the one stored in the database
+        const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!passwordMatch) {
+            return res.status(400).json({ message: "Old password is incorrect." });
+        }
+
+        // If old password matches, hash the new password and update the user document
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.hasChangedPassword = true; // Set this flag to true since the password is being changed
+        await user.save();
+
+        res.status(201).json({
+            message: "Sign-up successfully.",
+            username: user.username,
+            fName: user.fName,
+            lName: user.lName,
+            occupation: user.occupation,
+            superAdmin: user.superAdmin,
+            hasChangedPassword: user.hasChangedPassword,
+            _id: user._id
+        })
+    } catch (error) {
+        res.status(500).json({ message: "Server error." });
+    }
+};
+
 
 exports.addUser = async (req, res, next) => {
     try {
@@ -53,6 +95,7 @@ exports.addUser = async (req, res, next) => {
             lName: user.lName,
             occupation: user.occupation,
             superAdmin: user.superAdmin,
+            hasChangedPassword: user.hasChangedPassword,
             _id: user._id
         });
     } catch (err) {
@@ -78,6 +121,7 @@ exports.loginUser = async (req, res, next) => {
                 lName: user.lName,
                 occupation: user.occupation,
                 superAdmin: user.superAdmin,
+                hasChangedPassword: user.hasChangedPassword,
                 _id: user._id
             });
         });
