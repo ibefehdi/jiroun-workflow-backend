@@ -259,6 +259,7 @@ exports.createRequest = async (req, res) => {
 
         res.status(201).json(newRequest);
     } catch (error) {
+        console.log(error);
         res.status(500).json({ message: 'Error creating request and subrequest', error });
     }
 };
