@@ -133,7 +133,7 @@ exports.getAllUsers = async (req, res, next) => {
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
 
         const skip = (page - 1) * resultsPerPage;
-        const users = await User.find({}, {
+        const users = await User.find({ occupation: { $ne: 'Contractor' } }, {
             _id: 1,
             username: 1,
             fName: 1,
@@ -163,6 +163,10 @@ exports.getAllUsers = async (req, res, next) => {
 
 exports.getContractorsUsers = async (req, res, next) => {
     try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+
+        const skip = (page - 1) * resultsPerPage;
         // Define the array of occupations
         const occupation = 'Contractor'
 
@@ -175,13 +179,19 @@ exports.getContractorsUsers = async (req, res, next) => {
             fName: 1,
             lName: 1,
             occupation: 1,
-        });
-
+        }).skip(skip)
+            .limit(resultsPerPage);;
+        const count = users.length;
 
 
         // Send the response in the requested format
-        res.status(200).json(users);
-
+        res.status(200).json({
+            data: users,
+            count: count,
+            metadata: {
+                total: count
+            }
+        });
     } catch (err) {
         console.error(err);  // Add this line to log the error
         res.status(500).json({ message: err.message });

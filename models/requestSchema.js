@@ -61,9 +61,6 @@ requestSchema.pre('save', async function (next) {
 
             this.requestID = counter.seq;
 
-            if (this.isNew && this.requestType === 'Request Item') {
-                this.progress = 25;
-            }
             next();
 
 
