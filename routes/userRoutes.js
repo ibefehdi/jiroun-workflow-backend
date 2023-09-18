@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllUsers, addUser, loginUser, getContractorsUsers, getProjectManagerUsers, getProjectDirectorUsers, changePassword, getUsersCount, getForemenUsers, getManagingPartnerUsers, getFinanceUsers, getQosUsers, getProcurementUsers, getAllContractorUsers } = require('../controllers/userController')
+const { getAllUsers, addUser, loginUser, getContractorsUsers, getProjectManagerUsers, getProjectDirectorUsers, changePassword, getUsersCount, getForemenUsers, getManagingPartnerUsers, getFinanceUsers, getQosUsers, getProcurementUsers, getAllContractorUsers, resetPassword } = require('../controllers/userController')
 
 
 router.post('/users/signup', addUser);
 router.post('/users/:id/changePassword', changePassword);
+router.post('/users/:id/resetPassword', resetPassword)
 // Login a user
 router.post('/users/login', loginUser);
 
@@ -30,6 +31,6 @@ router.get('/users/qos', getQosUsers);
 
 router.get('/users/foremen', getForemenUsers);
 
-router.get('/users/allcontractors',getAllContractorUsers)
+router.get('/users/allcontractors', getAllContractorUsers)
 
 module.exports = router;
