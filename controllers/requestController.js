@@ -1,7 +1,17 @@
 const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest } = require('../models/requestSchema');
+const User = require('../models/userSchema');
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
 
-
+let transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+        user: 'noreply@smartlifekwt.com',
+        pass: 'Sm@Rt@Server'
+    }
+});
 exports.getAllRequests = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
@@ -190,7 +200,30 @@ exports.createSubRequest = async (req, res) => {
         }
 
         await request.save();
-        // Send success response
+        const recipientUser = await User.findById(recipient);
+        const mailOptions = {
+            from: 'noreply@smartlifekwt.com',
+            to: recipientUser.email,
+            subject: `[URGENT] There is a new subrequest for <strong>Request ID: ${request.requestID}`,
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Hello ${recipientUser.fName} ${recipientUser.lName},</h2>
+                    <p><span style="color:red; font-weight:bold">[URGENT]:</span> New Subrequest Created for Request No <strong>Request ID: ${request.requestID}</strong>.</p>
+                    <p>Please <a href="http://213.136.88.115:8005/listyourrequests">Click here</a> to view the details.</p>
+                </div>
+            `
+        };
+
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
+
+
         res.status(201).json(newSubRequest);
     } catch (error) {
         console.error("Error details:", error); // Log the detailed error
@@ -236,6 +269,11 @@ exports.createRequest = async (req, res) => {
 
         await newSubRequest.save();
 
+        const recipientUser = await User.findById(recipient);
+
+
+
+
         const newRequest = new Request({
             requestType,
             project,
@@ -256,7 +294,27 @@ exports.createRequest = async (req, res) => {
         });
 
         await newRequest.save();
+        const mailOptions = {
+            from: 'noreply@smartlifekwt.com',
+            to: recipientUser.email,
+            subject: `[URGENT] There is a new request for you. Request No ${newRequest?.requestID}`,
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Hello ${recipientUser.fName} ${recipientUser.lName},</h2>
+                    <p> <span style="color:red; font-weight:bolder">[URGENT]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
+                    <p>Please <a href="http://213.136.88.115:8005/listyourrequests">Click here</a> for details.</p>
+                </div>
+            `
+        };
 
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
         res.status(201).json(newRequest);
     } catch (error) {
         console.log(error);

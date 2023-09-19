@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllUsers, addUser, loginUser, getContractorsUsers, getProjectManagerUsers, getProjectDirectorUsers, changePassword, getUsersCount, getForemenUsers, getManagingPartnerUsers, getFinanceUsers, getQosUsers, getProcurementUsers, getAllContractorUsers, resetPassword } = require('../controllers/userController')
+const { getAllUsers, addUser, loginUser, getContractorsUsers, getProjectManagerUsers, getProjectDirectorUsers, changePassword, getUsersCount, getForemenUsers, getManagingPartnerUsers, getFinanceUsers, getQosUsers, getProcurementUsers, getAllContractorUsers, resetPassword, editUser } = require('../controllers/userController')
 
 
 router.post('/users/signup', addUser);
@@ -9,6 +9,8 @@ router.post('/users/:id/changePassword', changePassword);
 router.post('/users/:id/resetPassword', resetPassword)
 // Login a user
 router.post('/users/login', loginUser);
+
+router.put('/users/:id', editUser)
 
 // Get all users
 router.get('/users', getAllUsers);
