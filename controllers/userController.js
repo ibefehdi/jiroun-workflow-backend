@@ -243,6 +243,8 @@ exports.getContractorsUsers = async (req, res, next) => {
             fName: 1,
             lName: 1,
             occupation: 1,
+            phoneNo: 1,
+            email: 1,
         }).skip(skip)
             .limit(resultsPerPage);;
         const count = users.length;
