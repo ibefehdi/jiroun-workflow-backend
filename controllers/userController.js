@@ -92,14 +92,36 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
+exports.editUser = async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        const { username, fName, lName, occupation, superAdmin, email, phoneNo } = req.body;
+
+        let updateObject = {};
+        if (username) updateObject.username = username;
+        if (fName) updateObject.fName = fName;
+        if (lName) updateObject.lName = lName;
+        if (phoneNo) updateObject.phoneNo = phoneNo;
+        if (occupation) updateObject.occupation = occupation;
+        if (typeof superAdmin !== 'undefined') updateObject.superAdmin = superAdmin;
+        if (email) updateObject.email = email;
+
+        const updatedUser = await User.findByIdAndUpdate(id, updateObject, { new: true });
+
+        res.status(200).json({ message: "User Updated.", data: { user: updatedUser } });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Failed to update user.", error: error.message });
+    }
+}
 
 exports.addUser = async (req, res, next) => {
     try {
         // Get user input
-        const { username, fName, lName, occupation, superAdmin, password } = req.body;
+        const { username, fName, lName, occupation, superAdmin, password, email, phoneNo } = req.body;
 
         // Validate user input
-        if (!(username && fName && lName && occupation && password)) {
+        if (!(username && fName && lName && occupation && password && email && phoneNo)) {
             res.status(400).send("All input is required");
         }
 
@@ -118,7 +140,9 @@ exports.addUser = async (req, res, next) => {
             username,
             fName,
             lName,
+            phoneNo,
             occupation,
+            email,
             superAdmin: superAdmin || false,  // By default superAdmin is set to false unless provided
             password: encryptedPassword,
         });
@@ -129,6 +153,8 @@ exports.addUser = async (req, res, next) => {
             username: user.username,
             fName: user.fName,
             lName: user.lName,
+            email: user.email,
+            phoneNo: user.phoneNo,
             occupation: user.occupation,
             superAdmin: user.superAdmin,
             hasChangedPassword: user.hasChangedPassword,
@@ -174,13 +200,15 @@ exports.getAllUsers = async (req, res, next) => {
             username: 1,
             fName: 1,
             lName: 1,
+            phoneNo: 1,
             occupation: 1,
             superAdmin: 1,
+            email: 1,
         }).skip(skip)
             .limit(resultsPerPage);
 
         // Get the count of all users
-        const count = await User.countDocuments();
+        const count = await User.countDocuments({ occupation: { $ne: 'Contractor' } });
 
         // Send the response in the requested format
         res.status(200).json({

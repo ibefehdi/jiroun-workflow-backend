@@ -6,8 +6,8 @@ async function migrate() {
     await mongoose.connect('mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+1.10.1', { useNewUrlParser: true, useUnifiedTopology: true });
 
     const result = await User.updateMany(
-        { hasChangedPassword: { $exists: false } },
-        { $set: { hasChangedPassword: false } }
+        { email: { $exists: false } },
+        { $set: { email: "test@gmail.com" } }
     );
 
     console.log(`Updated ${result.nModified} documents.`);
