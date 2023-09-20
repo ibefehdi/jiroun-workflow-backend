@@ -398,6 +398,8 @@ exports.getRequestBySender = async (req, res) => {
                                 fName: subRequest.recipient.fName,
                                 lName: subRequest.recipient.lName
                             },
+                            contractorForPayment: request.contractorForPayment,
+
 
                         };
                     }
@@ -414,6 +416,7 @@ exports.getRequestBySender = async (req, res) => {
                                 fName: subRequest.recipient.fName,
                                 lName: subRequest.recipient.lName
                             },
+                            contractorForPayment: request.contractorForPayment,
 
                         };
                     }
@@ -464,11 +467,7 @@ exports.getRequestByReceiver = async (req, res) => {
                         subRequestSentAt: subRequest.subRequestSentAt,
                         projectName: request.project.projectName,
                         requestType: request.requestType,
-                        contractorForPayment:
-                        {
-                            fName: request.contractorForPayment.fName,
-                            lName: request.contractorForPayment.lName
-                        },
+                        contractorForPayment: request.contractorForPayment,
                         sender: {
                             fName: subRequest.sender.fName,
                             lName: subRequest.sender.lName
