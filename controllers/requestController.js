@@ -297,11 +297,11 @@ exports.createRequest = async (req, res) => {
         await newRequest.save();
         const mailOptions = {
             from: 'noreply@smartlifekwt.com',
-            to: recipientUser.email,
+            to: recipientUser?.email,
             subject: `[URGENT] There is a new request for you. Request No ${newRequest?.requestID}`,
             html: `
                 <div style="font-family: Arial, sans-serif;">
-                    <h2>Hello ${recipientUser.fName} ${recipientUser.lName},</h2>
+                    <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
                     <p> <span style="color:red; font-weight:bolder">[URGENT]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
                     <p>Please <a href="http://213.136.88.115:8005/listyourrequests">Click here</a> for details.</p>
                 </div>
@@ -377,6 +377,7 @@ exports.getRequestBySender = async (req, res) => {
                 }
             })
             .populate('project')
+            .populate('contractorForPayment')
             .exec();
 
         const requestsMap = {};
@@ -396,10 +397,11 @@ exports.getRequestBySender = async (req, res) => {
                             recipient: {
                                 fName: subRequest.recipient.fName,
                                 lName: subRequest.recipient.lName
-                            }
+                            },
+
                         };
                     }
-                    // If this requestID is not in the map, add it
+
                     else if (!requestsMap[request.requestID]) {
                         requestsMap[request.requestID] = {
                             _id: request._id,
@@ -411,7 +413,8 @@ exports.getRequestBySender = async (req, res) => {
                             recipient: {
                                 fName: subRequest.recipient.fName,
                                 lName: subRequest.recipient.lName
-                            }
+                            },
+
                         };
                     }
                 }
@@ -447,6 +450,7 @@ exports.getRequestByReceiver = async (req, res) => {
                 }
             })
             .populate('project')
+            .populate('contractorForPayment')
             .exec();
 
         const extractedData = [];
@@ -460,6 +464,11 @@ exports.getRequestByReceiver = async (req, res) => {
                         subRequestSentAt: subRequest.subRequestSentAt,
                         projectName: request.project.projectName,
                         requestType: request.requestType,
+                        contractorForPayment:
+                        {
+                            fName: request.contractorForPayment.fName,
+                            lName: request.contractorForPayment.lName
+                        },
                         sender: {
                             fName: subRequest.sender.fName,
                             lName: subRequest.sender.lName
