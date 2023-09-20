@@ -36,6 +36,7 @@ exports.getAllRequests = async (req, res) => {
                 },
             });
         const count = await Request.count()
+        requests.sort((a, b) => b.requestID - a.requestID);
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching requests', error });
@@ -375,40 +376,59 @@ exports.getRequestBySender = async (req, res) => {
                     select: 'fName lName'
                 }
             })
-
             .populate('project')
             .exec();
 
+        const requestsMap = {};
 
-        const extractedData = [];
         requests.forEach(request => {
             request.subRequests.forEach(subRequest => {
                 if (subRequest.sender._id.toString() === userId) {
-                    extractedData.push({
-                        _id: request._id,
-                        requestID: request.requestID,
-                        isFinalized: subRequest.isFinalized,
-                        projectName: request.project.projectName,
-                        subRequestSentAt: subRequest.subRequestSentAt,
-                        requestType: request.requestType,
-                        recipient: {
-                            fName: subRequest.recipient.fName,
-                            lName: subRequest.recipient.lName
-                        }
-                    });
+                    // If this requestID is already in the map and the current subRequest is newer, update the entry
+                    if (requestsMap[request.requestID] && requestsMap[request.requestID].subRequestSentAt < subRequest.subRequestSentAt) {
+                        requestsMap[request.requestID] = {
+                            _id: request._id,
+                            requestID: request.requestID,
+                            isFinalized: subRequest.isFinalized,
+                            projectName: request.project.projectName,
+                            subRequestSentAt: subRequest.subRequestSentAt,
+                            requestType: request.requestType,
+                            recipient: {
+                                fName: subRequest.recipient.fName,
+                                lName: subRequest.recipient.lName
+                            }
+                        };
+                    }
+                    // If this requestID is not in the map, add it
+                    else if (!requestsMap[request.requestID]) {
+                        requestsMap[request.requestID] = {
+                            _id: request._id,
+                            requestID: request.requestID,
+                            isFinalized: subRequest.isFinalized,
+                            projectName: request.project.projectName,
+                            subRequestSentAt: subRequest.subRequestSentAt,
+                            requestType: request.requestType,
+                            recipient: {
+                                fName: subRequest.recipient.fName,
+                                lName: subRequest.recipient.lName
+                            }
+                        };
+                    }
                 }
             });
         });
 
-        const count = extractedData.length;
+        // Convert the requestsMap object values to an array
+        const extractedData = Object.values(requestsMap);
         extractedData.sort((a, b) => b.requestID - a.requestID);
 
+        const count = extractedData.length;
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
     } catch (error) {
-        // Handle error
         res.status(500).json({ message: 'Error getting requests by sender', error });
     }
 };
+
 exports.getRequestByReceiver = async (req, res) => {
     try {
         const userId = req.params.userId;
@@ -416,11 +436,10 @@ exports.getRequestByReceiver = async (req, res) => {
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
         const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find({})
-
             .populate({
                 path: 'subRequests',
                 model: SubRequest,
-                match: { recipient: userId },
+                match: { recipient: userId, isFinalized: 0 },
                 populate: {
                     path: 'sender',
                     select: 'fName lName'
