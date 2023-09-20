@@ -135,7 +135,7 @@ exports.addUser = async (req, res, next) => {
         const { username, fName, lName, occupation, superAdmin, password, email, phoneNo } = req.body;
 
         // Validate user input
-        if (!(username && fName && lName && occupation && password )) {
+        if (!(username && fName && lName && occupation && password)) {
             res.status(400).send("All input is required");
         }
 
@@ -261,7 +261,7 @@ exports.getContractorsUsers = async (req, res, next) => {
             email: 1,
         }).skip(skip)
             .limit(resultsPerPage);;
-        const count = users.length;
+        const count = await User.countDocuments({ occupation: 'Contractor' });
 
 
         // Send the response in the requested format
