@@ -14,6 +14,20 @@ exports.getUsersCount = async (req, res) => {
 
     }
 }
+exports.disableUser = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        user.active = false
+        await user.save();
+    } catch (err) {
+        res.status(404).json({ message: err });
+    }
+}
 exports.changePassword = async (req, res) => {
     const { id } = req.params;
     const { oldPassword, newPassword } = req.body;
@@ -121,7 +135,7 @@ exports.addUser = async (req, res, next) => {
         const { username, fName, lName, occupation, superAdmin, password, email, phoneNo } = req.body;
 
         // Validate user input
-        if (!(username && fName && lName && occupation && password && email && phoneNo)) {
+        if (!(username && fName && lName && occupation && password )) {
             res.status(400).send("All input is required");
         }
 
@@ -435,9 +449,6 @@ exports.getProcurementUsers = async (req, res, next) => {
             lName: 1,
             occupation: 1,
         });
-
-
-
         // Send the response in the requested format
         res.status(200).json(users);
 
