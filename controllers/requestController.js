@@ -204,11 +204,11 @@ exports.createSubRequest = async (req, res) => {
         const recipientUser = await User.findById(recipient);
         const mailOptions = {
             from: 'noreply@smartlifekwt.com',
-            to: recipientUser.email,
+            to: recipientUser?.email,
             subject: `[URGENT] There is a new subrequest for <strong>Request ID: ${request.requestID}`,
             html: `
                 <div style="font-family: Arial, sans-serif;">
-                    <h2>Hello ${recipientUser.fName} ${recipientUser.lName},</h2>
+                    <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
                     <p><span style="color:red; font-weight:bold">[URGENT]:</span> New Subrequest Created for Request No <strong>Request ID: ${request.requestID}</strong>.</p>
                     <p>Please <a href="http://213.136.88.115:8005/listyourrequests">Click here</a> to view the details.</p>
                 </div>
@@ -272,9 +272,6 @@ exports.createRequest = async (req, res) => {
 
         const recipientUser = await User.findById(recipient);
 
-
-
-
         const newRequest = new Request({
             requestType,
             project,
@@ -291,6 +288,7 @@ exports.createRequest = async (req, res) => {
             isFinalized,
             contractorForPayment,
             paymentType,
+            initiator: sender,
             subRequests: [newSubRequest._id],
         });
 
@@ -339,6 +337,7 @@ exports.editRequestItems = async (req, res) => {
         updatedItems?.forEach(updatedItem => {
             const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
             if (existingItem) {
+                existingItem.itemQuantity = updatedItem.itemQuantity;
                 existingItem.unitPrice = updatedItem.unitPrice;
                 existingItem.totalPrice = updatedItem.totalPrice;
             }
@@ -613,7 +612,28 @@ exports.deleteRequest = async (req, res) => {
             comments
         });
         await deletedRequest.save();
+        const initiator = await User.findById(deletedRequest.initiator);
 
+        const mailOptions = {
+            from: 'noreply@smartlifekwt.com',
+            to: initiator?.email,
+            subject: `[REJECTED] Your Request No ${deletedRequest?.requestID} has been Rejected.`,
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Hello ${initiator?.fName} ${initiator?.lName},</h2>
+                    <p> <span style="color:red; font-weight:bolder">[COMPLETED]:</span>The Request No ${deletedRequest?.requestID} has been completed that was raised by you.</strong>.</p>
+                </div>
+            `
+        };
+
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
         await Request.findByIdAndDelete(req.params.id);
 
         res.status(200).send('Request deleted successfully');
@@ -639,6 +659,28 @@ exports.createCompleteRequest = async (req, res) => {
             progress
         });
         await completedRequest.save();
+        const initiator = await User.findById(completedRequest.initiator);
+        const mailOptions = {
+            from: 'noreply@smartlifekwt.com',
+            to: initiator?.email,
+            subject: `[COMPLETED] Your Request No ${request?.requestID} has been completed.`,
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Hello ${initiator?.fName} ${initiator?.lName},</h2>
+                    <p> <span style="color:red; font-weight:bolder">[COMPLETED]:</span>The Request No ${completedRequest?.requestID} has been completed that was raised by you.</strong>.</p>
+                    <p>Please <a href="http://213.136.88.115:8005/listyourrequests">Click here</a> for details.</p>
+                </div>
+            `
+        };
+
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
         res.status(200).send('Request deleted successfully');
     } catch (err) {
         console.error(err);

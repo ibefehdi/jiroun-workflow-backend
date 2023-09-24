@@ -23,6 +23,7 @@ const requestSchema = new mongoose.Schema({
     globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
     requestID: { type: Number },
     progress: { type: Number, default: 0 },
+    initiator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     //Request Item
     items: [{
         itemName: { type: String },
