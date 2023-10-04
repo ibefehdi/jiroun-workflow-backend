@@ -84,12 +84,18 @@ const deletedRequestSchema = new mongoose.Schema({
 const DeletedRequest = mongoose.model('DeletedRequest', deletedRequestSchema);
 const completedRequestSchema = new mongoose.Schema({
     ...requestSchema.obj,
+    referenceNumber: { type: String },
     comments: { type: String }
 });
 const CompletedRequest = mongoose.model('CompletedRequest', completedRequestSchema);
-
+const unpaidRequestSchema = new mongoose.Schema({
+    ...requestSchema.obj,
+    comments: { type: String }
+})
+const UnpaidRequest = mongoose.model('UnpaidRequest', unpaidRequestSchema)
 module.exports.Counter = Counter;
 module.exports.SubRequest = SubRequest;
 module.exports.Request = Request;
 module.exports.DeletedRequest = DeletedRequest;
 module.exports.CompletedRequest = CompletedRequest;
+module.exports.UnpaidRequest = UnpaidRequest;
