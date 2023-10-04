@@ -82,9 +82,6 @@ exports.resetPassword = async (req, res) => {
             return res.status(404).json({ message: "User not found." });
         }
 
-
-
-
         // If old password matches, hash the new password and update the user document
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;

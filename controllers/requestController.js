@@ -1,4 +1,4 @@
-const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest } = require('../models/requestSchema');
+const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest, UnpaidRequest } = require('../models/requestSchema');
 const User = require('../models/userSchema');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
@@ -645,7 +645,7 @@ exports.deleteRequest = async (req, res) => {
 }
 exports.createCompleteRequest = async (req, res) => {
     try {
-        const request = await Request.findById(req.params.id);
+        const request = await UnpaidRequest.findById(req.params.id);
 
         if (!request) {
             return res.status(404).send('Request not found');
@@ -653,10 +653,12 @@ exports.createCompleteRequest = async (req, res) => {
 
         const comments = req.body.comments;
         const progress = req.body.progress;
+        const referenceNumber = req.body.referenceNumber;
         const completedRequest = new CompletedRequest({
             ...request.toObject(),
             comments,
-            progress
+            progress,
+            referenceNumber
         });
         await completedRequest.save();
         const initiator = await User.findById(completedRequest.initiator);
@@ -681,10 +683,108 @@ exports.createCompleteRequest = async (req, res) => {
                 console.log('Email sent:', info.response);
             }
         });
-        res.status(200).send('Request deleted successfully');
+        await UnpaidRequest.findByIdAndDelete(req.params.id);
+
+        res.status(200).send('Request Completed successfully');
     } catch (err) {
         console.error(err);
         res.status(500).send(err.message);
     }
 
+
+}
+exports.getSendersFromSubRequests = async (req, res) => {
+    try {
+        // Assuming the request ID is passed in the URL as a parameter
+        const requestId = req.params.id;
+        console.log(requestId);
+        // Fetch the Request document by its ID
+        const request = await Request.findById(requestId).populate('subRequests');
+
+        if (!request) {
+            return res.status(404).send({ message: 'Request not found' });
+        }
+
+        // Extract subrequest IDs from the request
+        const subRequestIds = request.subRequests.map(sr => sr._id);
+
+        // Fetch all subrequests using the extracted IDs
+        const subRequests = await SubRequest.find({ '_id': { $in: subRequestIds } });
+
+        // Extract senders from the subrequests and ensure they are unique
+        const uniqueSendersSet = new Set(subRequests.map(sr => sr.sender.toString()));
+        const uniqueSenderIds = Array.from(uniqueSendersSet);
+
+        const users = await User.find({ '_id': { $in: uniqueSenderIds } });
+
+        // Create an array of sender details with fName and lName
+        const senderDetails = users.map(user => ({
+            id: user._id,
+            fName: user.fName,
+            lName: user.lName
+        }));
+        return res.status(200).send(senderDetails);
+    } catch (error) {
+        console.error('Error fetching unique senders from subrequests:', error);
+        return res.status(500).send({ message: 'Internal Server Error' });
+    }
+};
+exports.createUnpaidRequest = async (req, res) => {
+    try {
+        const request = await Request.findById(req.params.id);
+
+        if (!request) {
+            return res.status(404).send('Request not found');
+        }
+
+        const comments = req.body.comments;
+        const progress = 90;
+        const unpaidRequest = new UnpaidRequest({
+            ...request.toObject(),
+            comments,
+            progress
+        });
+        await unpaidRequest.save();
+
+        let recipientEmail;
+        switch (request.requestType) {
+            case "Request Item":
+                recipientEmail = 'basel.almasri@jiroun.com';
+                break;
+            case "Request Payment":
+                recipientEmail = 'mo.maher@jiroun.com';
+                break;
+            default:
+                recipientEmail = 'testing@gmail.com';
+        }
+
+        const mailOptions = {
+            from: 'noreply@smartlifekwt.com',
+            to: recipientEmail,
+            subject: `[UNPAID] Your Request No ${request?.requestID} has been completed but REQUIRES PAYMENT.`,
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Hello Mohammad Maher,</h2>
+                    <p> <span style="color:red; font-weight:bolder">[UNPAID]:</span>The Request No ${unpaidRequest?.requestID} has been approved by a managing partner you can now pay to complete the request.</strong>.</p>
+                    <p>Please <a href="http://213.136.88.115:8005/unpaidrequests">Click here</a> for details.</p>
+                </div>
+            `
+        };
+
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
+
+        await Request.findByIdAndDelete(req.params.id);
+
+        res.status(200).send('Request Updated successfully');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err.message);
+    }
 }

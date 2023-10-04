@@ -17,8 +17,10 @@ const {
     getRequestsCount,
     deleteRequest,
     editRequestItems,
-    getAllSendersInRequest, 
-    createCompleteRequest
+    getAllSendersInRequest,
+    createCompleteRequest,
+    createUnpaidRequest,
+    getSendersFromSubRequests
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -40,6 +42,7 @@ router.post('/requests/:requestId', createSubRequest)
 
 router.get('/requests/:id', getRequestById)
 
+router.get('/getAllSenders/:id', getSendersFromSubRequests)
 // Create a request
 router.post('/requests', createRequest);
 router.get('/requests/sender/:userId', getRequestBySender);
@@ -53,4 +56,5 @@ router.get('/getSenders/:id', getAllSendersInRequest)
 router.post('/deleteRequest/:id', deleteRequest);
 router.post('/createRequest/:id', createRequest);
 router.post('/completeRequest/request/:id', createCompleteRequest)
+router.post('/unpaidrequest/request/:id', createUnpaidRequest)
 module.exports = router;

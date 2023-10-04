@@ -27,3 +27,29 @@ exports.getAllCompletedRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching requests', error: error.message });
     }
 };
+
+exports.getCompletedRequestById = async (req, res) => {
+    try {
+
+        const request = await CompletedRequest.findById(req.params.id)
+            .populate('project')
+            .populate('contractorForPayment')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                }
+
+
+            });
+
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        res.status(200).json(request);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching request', error });
+    }
+};
