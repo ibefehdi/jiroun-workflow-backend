@@ -49,6 +49,7 @@ exports.getRequestById = async (req, res) => {
         const request = await Request.findById(req.params.id)
             .populate('project')
             .populate('contractorForPayment')
+            .populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
@@ -73,6 +74,7 @@ exports.getRequestsByProjectId = async (req, res) => {
     try {
         const requests = await Request.find({ project: req.params.projectId })
             .populate('project')
+            .populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
@@ -96,10 +98,11 @@ exports.getPendingRequests = async (req, res) => {
     try {
         const requests = await Request.find({ globalStatus: 0 })
             .populate('project')
+            .populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
-                    path: 'sender recipient',
+                    path: 'sender recipient ',
                     model: 'User',
                 },
             });
@@ -377,6 +380,7 @@ exports.getRequestBySender = async (req, res) => {
             })
             .populate('project')
             .populate('contractorForPayment')
+            .populate('initiator')
             .exec();
 
         const requestsMap = {};
@@ -453,6 +457,7 @@ exports.getRequestByReceiver = async (req, res) => {
             })
             .populate('project')
             .populate('contractorForPayment')
+            .populate('initiator')
             .exec();
 
         const extractedData = [];
@@ -483,7 +488,43 @@ exports.getRequestByReceiver = async (req, res) => {
         res.status(500).json({ message: 'Error getting requests by receiver', error });
     }
 };
+exports.getRequestByReceiverCount = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+        const skip = (page - 1) * resultsPerPage;
+        const requests = await Request.find({})
+            
 
+        const extractedData = [];
+        requests.forEach(request => {
+            request.subRequests.forEach(subRequest => {
+                if (subRequest.recipient._id.toString() === userId) {
+                    extractedData.push({
+                        _id: request._id,
+                        requestID: request.requestID,
+                        isFinalized: subRequest.isFinalized,
+                        subRequestSentAt: subRequest.subRequestSentAt,
+                        projectName: request.project.projectName,
+                        requestType: request.requestType,
+                        contractorForPayment: request.contractorForPayment,
+                        sender: {
+                            fName: subRequest.sender.fName,
+                            lName: subRequest.sender.lName
+                        }
+                    });
+                }
+            });
+        });
+        extractedData.sort((a, b) => b.requestID - a.requestID);
+
+        const count = extractedData.length;
+        res.status(200).json({ count: count });
+    } catch (error) {
+        res.status(500).json({ message: 'Error getting requests by receiver', error });
+    }
+};
 
 
 exports.updatePreviousSubRequest = async (req, res) => {
@@ -694,40 +735,36 @@ exports.createCompleteRequest = async (req, res) => {
 
 }
 exports.getSendersFromSubRequests = async (req, res) => {
+
     try {
-        // Assuming the request ID is passed in the URL as a parameter
+
         const requestId = req.params.id;
-        console.log(requestId);
-        // Fetch the Request document by its ID
-        const request = await Request.findById(requestId).populate('subRequests');
+
+        const request = await Request.findById(requestId);
 
         if (!request) {
-            return res.status(404).send({ message: 'Request not found' });
+            return res.status(404).json({ message: 'Request not found' });
         }
 
-        // Extract subrequest IDs from the request
-        const subRequestIds = request.subRequests.map(sr => sr._id);
+        // Get distinct sender IDs
+        const subRequests = await SubRequest.find({ '_id': { $in: request.subRequests } }).distinct('sender');
 
-        // Fetch all subrequests using the extracted IDs
-        const subRequests = await SubRequest.find({ '_id': { $in: subRequestIds } });
+        const uniqueSenderIds = [...new Set(subRequests)];
 
-        // Extract senders from the subrequests and ensure they are unique
-        const uniqueSendersSet = new Set(subRequests.map(sr => sr.sender.toString()));
-        const uniqueSenderIds = Array.from(uniqueSendersSet);
+        // Fetch first match for each sender ID
+        const senders = await User.aggregate([
+            { $match: { '_id': { $in: uniqueSenderIds } } },
+            { $group: { _id: '$_id', sender: { $first: '$$ROOT' } } },
+            { $replaceRoot: { newRoot: '$sender' } }
+        ]);
 
-        const users = await User.find({ '_id': { $in: uniqueSenderIds } });
+        return res.status(200).json(senders);
 
-        // Create an array of sender details with fName and lName
-        const senderDetails = users.map(user => ({
-            id: user._id,
-            fName: user.fName,
-            lName: user.lName
-        }));
-        return res.status(200).send(senderDetails);
     } catch (error) {
-        console.error('Error fetching unique senders from subrequests:', error);
-        return res.status(500).send({ message: 'Internal Server Error' });
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
+
 };
 exports.createUnpaidRequest = async (req, res) => {
     try {

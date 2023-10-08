@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
     hasChangedPassword: { type: Boolean, default: false },
     superAdmin: { type: Boolean, required: true },     // The superAdmin property is required and must be a boolean. Only difference is that a superAdmin can add new users to the database.
     password: { type: String, required: true },
-
+    permissions: [{ type: String }]
 });
 
 module.exports = mongoose.model('User', userSchema);
