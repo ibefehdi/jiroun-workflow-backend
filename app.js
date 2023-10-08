@@ -41,7 +41,16 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-
+app.use((req, res, next) => {
+    const clientVersion = req.headers['app-version'];
+    const serverVersion = process.env.APP_VERSION || '1.0'; 
+  
+    if (clientVersion !== serverVersion) {
+      return res.status(409).json({ error: 'App version mismatch. Please refresh or reload the application.' });
+    }
+  
+    next();
+  });
 mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,

@@ -106,7 +106,7 @@ exports.resetPassword = async (req, res) => {
 exports.editUser = async (req, res, next) => {
     try {
         const id = req.params.id;
-        const { username, fName, lName, occupation, superAdmin, email, phoneNo } = req.body;
+        const { username, fName, lName, occupation, superAdmin, email, phoneNo, permissions } = req.body;
 
         let updateObject = {};
         if (username) updateObject.username = username;
@@ -116,6 +116,7 @@ exports.editUser = async (req, res, next) => {
         if (occupation) updateObject.occupation = occupation;
         if (typeof superAdmin !== 'undefined') updateObject.superAdmin = superAdmin;
         if (email) updateObject.email = email;
+        if (permissions) updateObject.permissions = permissions
 
         const updatedUser = await User.findByIdAndUpdate(id, updateObject, { new: true });
 
@@ -129,7 +130,7 @@ exports.editUser = async (req, res, next) => {
 exports.addUser = async (req, res, next) => {
     try {
         // Get user input
-        const { username, fName, lName, occupation, superAdmin, password, email, phoneNo } = req.body;
+        const { username, fName, lName, occupation, superAdmin, password, email, phoneNo, permissions } = req.body;
 
         // Validate user input
         if (!(username && fName && lName && occupation && password)) {
@@ -154,6 +155,7 @@ exports.addUser = async (req, res, next) => {
             phoneNo,
             occupation,
             email,
+            permissions,
             superAdmin: superAdmin || false,  // By default superAdmin is set to false unless provided
             password: encryptedPassword,
         });
@@ -169,6 +171,7 @@ exports.addUser = async (req, res, next) => {
             occupation: user.occupation,
             superAdmin: user.superAdmin,
             hasChangedPassword: user.hasChangedPassword,
+            permissions: user.permissions,
             _id: user._id
         });
     } catch (err) {
@@ -181,7 +184,7 @@ exports.loginUser = async (req, res, next) => {
             return next(err);
         }
         if (!user) {
-            return res.status(401).send(info.message);
+            return res.status(401).json({ error: info.message });
         }
         req.logIn(user, async function (err) {
             if (err) {
@@ -195,6 +198,7 @@ exports.loginUser = async (req, res, next) => {
                 occupation: user.occupation,
                 superAdmin: user.superAdmin,
                 hasChangedPassword: user.hasChangedPassword,
+                permissions: user.permissions,
                 _id: user._id
             });
         });
@@ -214,6 +218,7 @@ exports.getAllUsers = async (req, res, next) => {
             phoneNo: 1,
             occupation: 1,
             superAdmin: 1,
+            permissions: 1,
             email: 1,
         }).skip(skip)
             .limit(resultsPerPage);

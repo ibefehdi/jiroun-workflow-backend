@@ -20,7 +20,8 @@ const {
     getAllSendersInRequest,
     createCompleteRequest,
     createUnpaidRequest,
-    getSendersFromSubRequests
+    getSendersFromSubRequests,
+    getRequestByReceiverCount
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -47,6 +48,8 @@ router.get('/getAllSenders/:id', getSendersFromSubRequests)
 router.post('/requests', createRequest);
 router.get('/requests/sender/:userId', getRequestBySender);
 router.get('/requests/receiver/:userId', getRequestByReceiver)
+router.get('/requests/receiverCount/:userId', getRequestByReceiverCount)
+
 router.put('/subrequests/:subrequestId', editSubRequest)
 router.put('/requests/:requestId', editRequest)
 router.get('/checkRecipient/:userId/:requestId', checkRecipient);
