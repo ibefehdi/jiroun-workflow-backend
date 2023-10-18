@@ -43,14 +43,14 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
     const clientVersion = req.headers['app-version'];
-    const serverVersion = process.env.APP_VERSION || '1.0'; 
-  
+    const serverVersion = process.env.APP_VERSION || '1.0';
+
     if (clientVersion !== serverVersion) {
-      return res.status(409).json({ error: 'App version mismatch. Please refresh or reload the application.' });
+        return res.status(409).json({ error: 'App version mismatch. Please refresh or reload the application.' });
     }
-  
+
     next();
-  });
+});
 mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -93,4 +93,4 @@ app.use('/api/v1/', completeRequestRoutes);
 app.use('/api/v1/', deletedRoutes)
 app.use('/api/v1/', unpaidRequestRoutes)
 app.use('/api/v1/', notificationRoutes);
-app.listen(port, () => console.log(`Listening on port ${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`Listening on port ${port}`));

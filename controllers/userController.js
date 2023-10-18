@@ -190,6 +190,17 @@ exports.loginUser = async (req, res, next) => {
             if (err) {
                 return next(err);
             }
+            console.log({
+                message: "Authenticated successfully.",
+                username: user.username,
+                fName: user.fName,
+                lName: user.lName,
+                occupation: user.occupation,
+                superAdmin: user.superAdmin,
+                hasChangedPassword: user.hasChangedPassword,
+                permissions: user.permissions,
+                _id: user._id
+            });
             return res.status(200).json({
                 message: "Authenticated successfully.",
                 username: user.username,
