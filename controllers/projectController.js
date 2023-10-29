@@ -132,6 +132,28 @@ exports.getUserProjects = async (req, res) => {
     }
 };
 
+exports.getProjectsById = async (req, res) => {
+    const { projectId } = req.params;
+    console.log(projectId);
+    try {
+        const project = await Project.findById({
+            _id: projectId
+        }).populate('contractors').populate('projectManager').populate('projectDirector').populate('foremen');
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        res.status(200).json({
+            data: project,
+            metadata: {
+                total: 1
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
 
 

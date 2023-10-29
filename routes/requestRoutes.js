@@ -21,7 +21,8 @@ const {
     createCompleteRequest,
     createUnpaidRequest,
     getSendersFromSubRequests,
-    getRequestByReceiverCount
+    getRequestByReceiverCount,
+    editContractorinRequest
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -52,6 +53,7 @@ router.get('/requests/receiverCount/:userId', getRequestByReceiverCount)
 
 router.put('/subrequests/:subrequestId', editSubRequest)
 router.put('/requests/:requestId', editRequest)
+router.put('/requests/contractor/:requestId',editContractorinRequest)
 router.get('/checkRecipient/:userId/:requestId', checkRecipient);
 router.put('/editrequests/:requestId', editRequestItems)
 router.get('/requestscount/', getRequestsCount);
