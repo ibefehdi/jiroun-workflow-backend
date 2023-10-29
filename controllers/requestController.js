@@ -20,7 +20,7 @@ exports.getAllRequests = async (req, res) => {
         const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find()
             .skip(skip)
-            .limit(resultsPerPage)
+            .limit(resultsPerPage).populate('contractorForPayment')
             .populate('project').populate({
                 path: 'project',
                 populate: {
@@ -34,9 +34,10 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
+
             });
         const count = await Request.count()
-        requests.sort((a, b) => b.requestID - a.requestID);
+        requests.sort((b, a) => a.requestID - b.requestID);
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching requests', error });
@@ -244,6 +245,7 @@ exports.createRequest = async (req, res) => {
         const {
             requestType,
             project,
+            requestTitle,
             estimatedAmount,
             totalAmount,
             paidAmount,
@@ -279,6 +281,7 @@ exports.createRequest = async (req, res) => {
             requestType,
             project,
             estimatedAmount: 0,
+            requestTitle,
             totalAmount: totalAmount !== 0 ? totalAmount : 0,
             paidAmount: 0,
             requiredAmount: 0,
@@ -361,6 +364,29 @@ exports.editRequestItems = async (req, res) => {
     }
 };
 
+exports.editContractorinRequest = async (req, res) => {
+    try {
+        const requestId = req.params.requestId;
+
+        const request = await Request.findById(requestId);
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        const { contractorForPayment } = req.body;
+
+
+        request.contractorForPayment = contractorForPayment;
+
+        await request.save();
+
+        // Send success response
+        res.status(200).json(request);
+    } catch (error) {
+        console.error("Error details:", error);
+        res.status(500).json({ message: 'Error updating request items', error });
+    }
+};
 
 exports.getRequestBySender = async (req, res) => {
     try {
@@ -397,6 +423,7 @@ exports.getRequestBySender = async (req, res) => {
                             projectName: request.project.projectName,
                             subRequestSentAt: subRequest.subRequestSentAt,
                             requestType: request.requestType,
+                            requestTitle: request.requestTitle,
                             recipient: {
                                 fName: subRequest.recipient.fName,
                                 lName: subRequest.recipient.lName
@@ -414,6 +441,7 @@ exports.getRequestBySender = async (req, res) => {
                             isFinalized: subRequest.isFinalized,
                             projectName: request.project.projectName,
                             subRequestSentAt: subRequest.subRequestSentAt,
+                            requestTitle: request.requestTitle,
                             requestType: request.requestType,
                             recipient: {
                                 fName: subRequest.recipient.fName,
@@ -469,6 +497,7 @@ exports.getRequestByReceiver = async (req, res) => {
                         requestID: request.requestID,
                         isFinalized: subRequest.isFinalized,
                         subRequestSentAt: subRequest.subRequestSentAt,
+                        requestTitle: request.requestTitle,
                         projectName: request.project.projectName,
                         requestType: request.requestType,
                         contractorForPayment: request.contractorForPayment,
@@ -495,7 +524,7 @@ exports.getRequestByReceiverCount = async (req, res) => {
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
         const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find({})
-            
+
 
         const extractedData = [];
         requests.forEach(request => {

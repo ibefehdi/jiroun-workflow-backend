@@ -20,6 +20,7 @@ const requestSchema = new mongoose.Schema({
     //Main Request
     requestType: String,
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+    requestTitle: { type: String },
     globalStatus: { type: Number, enum: [0, 1, 2, 3], default: 0 },
     requestID: { type: Number },
     progress: { type: Number, default: 0 },
