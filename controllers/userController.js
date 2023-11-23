@@ -369,14 +369,30 @@ exports.getFinanceUsers = async (req, res, next) => {
         res.status(500).json({ message: err.message });
     }
 };
+exports.getUserDetails = async (req, res) => {
+    try {
+        // Extract _id from the request parameters
+        const userId = req.params.id;
+
+        // Find the user by _id and exclude the password field from the result
+        const user = await User.findById(userId, '-password').exec();
+
+        // If user is not found, send a 404 response
+        if (!user) {
+            return res.status(404).send({ message: 'User not found' });
+        }
+
+        // Respond with the user details
+        res.status(200).send(user);
+    } catch (error) {
+        // If there's an error, send a 500 server error response
+        res.status(500).send({ message: 'Error retrieving user details', error: error.message });
+    }
+};
 exports.getAllUsersnontable = async (req, res, next) => {
     try {
-        // Define the array of occupations
-
-
-        // Find users with specific occupations
-        const users = await User.find({
-            occupation: { $nin: ['Contractor', 'Foreman'] }
+            const users = await User.find({
+            occupation: { $nin: ['Contractor', 'Foreman', 'Developer'] }
 
         }, {
             _id: 1,
