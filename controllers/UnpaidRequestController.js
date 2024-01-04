@@ -61,7 +61,7 @@ exports.completeUnpaidRequests = async (req, res) => {
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${initiator?.fName} ${initiator?.lName},</h2>
                     <p> <span style="color:red; font-weight:bolder">[CONTRACTOR PAID]:</span>The contractor ${contractor?.fName} ${contractor?.lName} from Request ID ${request?.requestID} has been paid for ${request?.paymentType}. You can now proceed with the contractor</strong>.</p>
-                    <p>Please <a href="http://213.136.88.115:8005/listyourrequests">Click here</a> for details.</p>
+                    <p>Please <a href="http://161.97.150.244:8081/listyourrequests">Click here</a> for details.</p>
                 </div>
             `
         };

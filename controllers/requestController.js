@@ -214,7 +214,7 @@ exports.createSubRequest = async (req, res) => {
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
                     <p><span style="color:red; font-weight:bold">[URGENT]:</span> New Subrequest Created for Request No <strong>Request ID: ${request.requestID}</strong>.</p>
-                    <p>Please <a href="http://213.136.88.115:8005/list_your_requests">Click here</a> to view the details.</p>
+                    <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> to view the details.</p>
                 </div>
             `
         };
@@ -307,7 +307,7 @@ exports.createRequest = async (req, res) => {
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
                     <p> <span style="color:red; font-weight:bolder">[URGENT]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
-                    <p>Please <a href="http://213.136.88.115:8005/list_your_requests">Click here</a> for details.</p>
+                    <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> for details.</p>
                 </div>
             `
         };
@@ -740,7 +740,7 @@ exports.createCompleteRequest = async (req, res) => {
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${initiator?.fName} ${initiator?.lName},</h2>
                     <p> <span style="color:red; font-weight:bolder">[COMPLETED]:</span>The Request No ${completedRequest?.requestID} has been completed that was raised by you.</strong>.</p>
-                    <p>Please <a href="http://213.136.88.115:8005/list_your_requests">Click here</a> for details.</p>
+                    <p>Please <a href="http://161.97.150.244:8081/list_your_requests">Click here</a> for details.</p>
                 </div>
             `
         };
@@ -832,7 +832,7 @@ exports.createUnpaidRequest = async (req, res) => {
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello Mohammad Maher,</h2>
                     <p> <span style="color:red; font-weight:bolder">[UNPAID]:</span>The Request No ${unpaidRequest?.requestID} has been approved by a managing partner you can now pay to complete the request.</strong>.</p>
-                    <p>Please <a href="http://213.136.88.115:8005/unpaid_requests">Click here</a> for details.</p>
+                    <p>Please <a href="http://161.97.150.244:8081/unpaid_requests">Click here</a> for details.</p>
                 </div>
             `
         };
