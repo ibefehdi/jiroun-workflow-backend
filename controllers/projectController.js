@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const Project = require('../models/projectSchema');
+const { SubContract, ContractorWorkRepository } = require('../models/contractorWorkRepository');
 
 // get all projects
 exports.getProjectsCount = async (req, res) => {
@@ -14,8 +15,9 @@ exports.getAllProjects = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
-
         const skip = (page - 1) * resultsPerPage;
+
+        // Fetch projects with pagination
         const projects = await Project.find()
             .skip(skip)
             .limit(resultsPerPage)
@@ -23,10 +25,23 @@ exports.getAllProjects = async (req, res) => {
             .populate('projectManager')
             .populate('foremen')
             .populate('projectDirector');
+
         const count = await Project.countDocuments();
 
+        // Add subcontract count for each project
+        const projectsWithSubcontractCount = await Promise.all(
+            projects.map(async (project) => {
+                const subcontractProject = await ContractorWorkRepository.findOne({ project: project?._id });
+                if (!subcontractProject) {
+                    return { ...project.toJSON(), subContractsCount: 0 };
+                }
+                const subContractsCount = subcontractProject.subContracts.length;
+                return { ...project.toJSON(), subContractsCount };
+            })
+        );
+
         res.status(200).json({
-            data: projects,
+            data: projectsWithSubcontractCount,
             count: count,
             metadata: {
                 total: count
@@ -35,7 +50,7 @@ exports.getAllProjects = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-}
+};
 
 
 // create a new project

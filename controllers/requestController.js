@@ -209,11 +209,11 @@ exports.createSubRequest = async (req, res) => {
         const mailOptions = {
             from: 'noreply@smartlifekwt.com',
             to: recipientUser?.email,
-            subject: `[URGENT] There is a new subrequest for <strong>Request ID: ${request.requestID}`,
+            subject: `[NEW REQUEST]There is a new subrequest for <strong>Request ID: ${request.requestID}`,
             html: `
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
-                    <p><span style="color:red; font-weight:bold">[URGENT]:</span> New Subrequest Created for Request No <strong>Request ID: ${request.requestID}</strong>.</p>
+                    <p><span style="color:red; font-weight:bold">[NEW REQUEST]:</span> New Subrequest Created for Request No <strong>Request ID: ${request.requestID}</strong>.</p>
                     <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> to view the details.</p>
                 </div>
             `
@@ -302,11 +302,11 @@ exports.createRequest = async (req, res) => {
         const mailOptions = {
             from: 'noreply@smartlifekwt.com',
             to: recipientUser?.email,
-            subject: `[URGENT] There is a new request for you. Request No ${newRequest?.requestID}`,
+            subject: `[NEW REQUEST] There is a new request for you. Request No ${newRequest?.requestID}`,
             html: `
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
-                    <p> <span style="color:red; font-weight:bolder">[URGENT]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
+                    <p> <span style="color:red; font-weight:bolder">[NEW REQUEST]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
                     <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> for details.</p>
                 </div>
             `
@@ -768,7 +768,7 @@ exports.getSendersFromSubRequests = async (req, res) => {
     try {
 
         const requestId = req.params.id;
-
+        console.log(req.params.id);
         const request = await Request.findById(requestId);
 
         if (!request) {
@@ -779,7 +779,7 @@ exports.getSendersFromSubRequests = async (req, res) => {
         const subRequests = await SubRequest.find({ '_id': { $in: request.subRequests } }).distinct('sender');
 
         const uniqueSenderIds = [...new Set(subRequests)];
-
+        console.log(request.subRequests);
         // Fetch first match for each sender ID
         const senders = await User.aggregate([
             { $match: { '_id': { $in: uniqueSenderIds } } },
