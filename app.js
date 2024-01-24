@@ -15,6 +15,7 @@ const completeRequestRoutes = require('./routes/completeRequestRoutes');
 const deletedRoutes = require("./routes/DeletedRequestRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const unpaidRequestRoutes = require("./routes/UnpaidRequestRoutes");
+const ContractorWorkRoutes = require("./routes/ContractorWorkRoutes");
 require('dotenv').config();
 
 
@@ -93,4 +94,5 @@ app.use('/api/v1/', completeRequestRoutes);
 app.use('/api/v1/', deletedRoutes)
 app.use('/api/v1/', unpaidRequestRoutes)
 app.use('/api/v1/', notificationRoutes);
+app.use('/api/v1/', ContractorWorkRoutes)
 app.listen(port, '0.0.0.0', () => console.log(`Listening on port ${port}`));
