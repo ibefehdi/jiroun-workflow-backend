@@ -67,7 +67,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            });
+            }).lean();
         const deletedRequests = await DeletedRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
@@ -77,7 +77,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            });
+            }).lean();
         const completedRequests = await CompletedRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
@@ -87,7 +87,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            });
+            }).lean();
         const unpaidRequests = await UnpaidRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
@@ -97,7 +97,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            });
+            }).lean();
         const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
 
         const countRequests = await Request.count(queryConditions);
@@ -119,30 +119,51 @@ exports.getAllRequests = async (req, res) => {
 
 exports.getRequestById = async (req, res) => {
     try {
+        // Function to search a model for the request
+        const findRequestInModel = async (model) => {
+            return model.findById(req.params.id)
+                .populate('project')
+                .populate({
+                    path: 'subRequests',
+                    populate: {
+                        path: 'sender recipient',
+                        model: 'User',
+                    }
 
-        const request = await Request.findById(req.params.id)
-            .populate('project')
-            .populate('contractorForPayment')
-            .populate('initiator')
-            .populate({
-                path: 'subRequests',
-                populate: {
-                    path: 'sender recipient',
-                    model: 'User',
-                }
 
+                })
+                .populate('initiator')
+                .populate({
+                    path: 'subRequests',
+                    populate: {
+                        path: 'sender recipient',
+                        model: 'User',
+                    }
+                })
+                .lean(); // Use lean() for faster reads without Mongoose overhead
+        };
 
-            });
+        // Initiate parallel searches
+        const [request, unpaidRequest, completedRequest, deletedRequest] = await Promise.all([
+            findRequestInModel(Request),
+            findRequestInModel(UnpaidRequest),
+            findRequestInModel(CompletedRequest),
+            findRequestInModel(DeletedRequest)
+        ]);
 
-        if (!request) {
+        // Return the first non-null result
+        const foundRequest = request || unpaidRequest || completedRequest || deletedRequest;
+
+        if (!foundRequest) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        res.status(200).json(request);
+        res.status(200).json(foundRequest);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching request', error });
     }
 };
+
 
 exports.getRequestsByProjectId = async (req, res) => {
     try {
