@@ -5,9 +5,37 @@ exports.getAllCompletedRequests = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
-
+        const requestType = req.query.requestType;
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+        const initiator = req.query.initiator;
+        const contractorForPayment = req.query.contractorForPayment;
+        const project = req.query.project;
+        // Build query conditions based on filters
+        let queryConditions = {};
+        if (requestType) {
+            queryConditions.requestType = requestType;
+        }
+        if (startDate || endDate) {
+            queryConditions.createdAt = {};
+            if (startDate) {
+                queryConditions.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                queryConditions.createdAt.$lte = new Date(endDate);
+            }
+        }
+        if (initiator) {
+            queryConditions.initiator = initiator;
+        }
+        if (contractorForPayment) {
+            queryConditions.contractorForPayment = contractorForPayment;
+        }
+        if (project) {
+            queryConditions.project = project;
+        }
         const skip = (page - 1) * resultsPerPage;
-        const requests = await CompletedRequest.find().skip(skip)
+        const requests = await CompletedRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
             .populate({
@@ -17,7 +45,7 @@ exports.getAllCompletedRequests = async (req, res) => {
                     model: 'User',
                 },
             });
-        const count = await CompletedRequest.countDocuments();
+        const count = await CompletedRequest.countDocuments(queryConditions);
         requests.sort((a, b) => b.requestID - a.requestID);
 
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });

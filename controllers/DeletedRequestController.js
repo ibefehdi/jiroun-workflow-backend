@@ -7,7 +7,36 @@ exports.getAllDeletedRequests = async (req, res) => {
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
 
         const skip = (page - 1) * resultsPerPage;
-        const requests = await DeletedRequest.find().skip(skip)
+        const requestType = req.query.requestType;
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+        const initiator = req.query.initiator;
+        const contractorForPayment = req.query.contractorForPayment;
+        const project = req.query.project;
+        // Build query conditions based on filters
+        let queryConditions = {};
+        if (requestType) {
+            queryConditions.requestType = requestType;
+        }
+        if (startDate || endDate) {
+            queryConditions.createdAt = {};
+            if (startDate) {
+                queryConditions.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                queryConditions.createdAt.$lte = new Date(endDate);
+            }
+        }
+        if (initiator) {
+            queryConditions.initiator = initiator;
+        }
+        if (contractorForPayment) {
+            queryConditions.contractorForPayment = contractorForPayment;
+        }
+        if (project) {
+            queryConditions.project = project;
+        }
+        const requests = await DeletedRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
             .populate({
@@ -17,7 +46,7 @@ exports.getAllDeletedRequests = async (req, res) => {
                     model: 'User',
                 },
             });
-        const count = await DeletedRequest.countDocuments();
+        const count = await DeletedRequest.countDocuments(queryConditions);
         requests.sort((a, b) => b.requestID - a.requestID);
 
         res.status(200).json({ data: requests, count: count, metadata: { total: count } });
