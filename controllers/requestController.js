@@ -68,11 +68,49 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             });
+        const deletedRequests = await DeletedRequest.find(queryConditions).skip(skip)
+            .limit(resultsPerPage)
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+        const completedRequests = await CompletedRequest.find(queryConditions).skip(skip)
+            .limit(resultsPerPage)
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+        const unpaidRequests = await UnpaidRequest.find(queryConditions).skip(skip)
+            .limit(resultsPerPage)
+            .populate('project')
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+        const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
 
-        const count = await Request.count(queryConditions);
-
-        requests.sort((b, a) => a.requestID - b.requestID);
-        res.status(200).json({ data: requests, count: count, metadata: { total: count } });
+        const countRequests = await Request.count(queryConditions);
+        const countDeletedRequests = await DeletedRequest.countDocuments(queryConditions);
+        const countCompletedRequests = await CompletedRequest.countDocuments(queryConditions);
+        const countUnpaidRequests = await UnpaidRequest.countDocuments(queryConditions);
+        const totalCount = countRequests + countDeletedRequests + countCompletedRequests + countUnpaidRequests;
+        combinedRequests.sort((b, a) => a.requestID - b.requestID);
+        res.status(200).json({
+            data: combinedRequests,
+            count: totalCount,
+            metadata: { total: totalCount }
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching requests', error });
     }
