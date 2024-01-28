@@ -50,7 +50,7 @@ exports.getAllRequests = async (req, res) => {
         }
 
         const requests = await Request.find(queryConditions)
-           
+
             .populate('contractorForPayment')
             .populate('project')
             .populate({
@@ -505,10 +505,52 @@ exports.getRequestBySender = async (req, res) => {
             .populate('contractorForPayment')
             .populate('initiator')
             .exec();
-
+        const completedRequests = await CompletedRequest.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { sender: userId },
+                populate: {
+                    path: 'recipient',
+                    select: 'fName lName'
+                }
+            })
+            .populate('project')
+            .populate('contractorForPayment')
+            .populate('initiator')
+            .exec();
+        const deletedRequests = await DeletedRequest.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { sender: userId },
+                populate: {
+                    path: 'recipient',
+                    select: 'fName lName'
+                }
+            })
+            .populate('project')
+            .populate('contractorForPayment')
+            .populate('initiator')
+            .exec();
+        const unpaidRequests = await UnpaidRequest.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { sender: userId },
+                populate: {
+                    path: 'recipient',
+                    select: 'fName lName'
+                }
+            })
+            .populate('project')
+            .populate('contractorForPayment')
+            .populate('initiator')
+            .exec();
         const requestsMap = {};
+        const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
 
-        requests.forEach(request => {
+        combinedRequests.forEach(request => {
             request.subRequests.forEach(subRequest => {
                 if (subRequest.sender._id.toString() === userId) {
                     // If this requestID is already in the map and the current subRequest is newer, update the entry
