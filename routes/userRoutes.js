@@ -18,7 +18,8 @@ const { getAllUsers,
     resetPassword,
     editUser,
     getAllUsersnontable,
-    getUserDetails } = require('../controllers/userController')
+    getUserDetails,
+    getAlloftheUsersNontable } = require('../controllers/userController')
 
 
 router.post('/users/signup', addUser);
@@ -38,6 +39,7 @@ router.get('/users/contractors', getContractorsUsers);
 
 router.get('/users/projectmanagers', getProjectManagerUsers);
 router.get('/users/all', getAllUsersnontable)
+router.get('/users/allusersfilteration', getAlloftheUsersNontable)
 router.get('/users/projectdirectors', getProjectDirectorUsers);
 
 router.get('/users/finance', getFinanceUsers)
