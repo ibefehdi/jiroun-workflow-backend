@@ -112,6 +112,7 @@ exports.getItemUnpaidRequests = async function (req, res) {
             .skip(skip)
             .limit(resultsPerPage)
             .populate('project')
+            .populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
@@ -160,6 +161,8 @@ exports.getPaymentUnpaidRequests = async function (req, res) {
         const requests = await UnpaidRequest.find({ ...queryConditions, requestType: "Request Payment" }).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
+            .populate('initiator')
+
             .populate({
                 path: 'subRequests',
                 populate: {

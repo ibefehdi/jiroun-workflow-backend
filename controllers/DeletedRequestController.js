@@ -39,6 +39,7 @@ exports.getAllDeletedRequests = async (req, res) => {
         const requests = await DeletedRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
             .populate('project')
+            .populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {

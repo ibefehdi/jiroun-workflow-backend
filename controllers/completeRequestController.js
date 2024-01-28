@@ -37,6 +37,7 @@ exports.getAllCompletedRequests = async (req, res) => {
         const skip = (page - 1) * resultsPerPage;
         const requests = await CompletedRequest.find(queryConditions).skip(skip)
             .limit(resultsPerPage)
+            .populate('initiator')
             .populate('project')
             .populate({
                 path: 'subRequests',
@@ -62,6 +63,8 @@ exports.getCompletedRequestById = async (req, res) => {
         const request = await CompletedRequest.findById(req.params.id)
             .populate('project')
             .populate('contractorForPayment')
+            .populate('initiator')
+
             .populate({
                 path: 'subRequests',
                 populate: {
