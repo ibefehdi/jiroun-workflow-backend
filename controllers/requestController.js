@@ -22,12 +22,14 @@ exports.getAllRequests = async (req, res) => {
         const initiator = req.query.initiator;
         const contractorForPayment = req.query.contractorForPayment;
         const project = req.query.project;
-
+        const requestID = req.query.requestID;
         const skip = (page - 1) * resultsPerPage;
 
         // Build query conditions based on filters
         let queryConditions = {};
         if (requestType) {
+
+
             queryConditions.requestType = requestType;
         }
         if (startDate || endDate) {
@@ -41,6 +43,11 @@ exports.getAllRequests = async (req, res) => {
         }
         if (initiator) {
             queryConditions.initiator = initiator;
+        }
+        if (requestID) {
+            const regex = new RegExp(requestID, 'i');
+            queryConditions.$expr = { $regexMatch: { input: { $toString: "$requestID" }, regex: regex } };
+
         }
         if (contractorForPayment) {
             queryConditions.contractorForPayment = contractorForPayment;
