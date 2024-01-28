@@ -58,7 +58,8 @@ exports.getAllRequests = async (req, res) => {
 
         const requests = await Request.find(queryConditions)
 
-            .populate('contractorForPayment')
+            .populate('contractorForPayment').populate('initiator')
+
             .populate('project')
             .populate({
                 path: 'project',
@@ -76,7 +77,7 @@ exports.getAllRequests = async (req, res) => {
             }).lean();
         console.log("Requests:", requests.length);
         const deletedRequests = await DeletedRequest.find(queryConditions)
-            .populate('project')
+            .populate('project').populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
@@ -86,7 +87,7 @@ exports.getAllRequests = async (req, res) => {
             }).lean();
         console.log("Deleted Requests:", deletedRequests.length);
         const completedRequests = await CompletedRequest.find(queryConditions)
-            .populate('project')
+            .populate('project').populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
@@ -96,7 +97,7 @@ exports.getAllRequests = async (req, res) => {
             }).lean();
         console.log("Completed Requests:", completedRequests.length)
         const unpaidRequests = await UnpaidRequest.find(queryConditions)
-            .populate('project')
+            .populate('project').populate('initiator')
             .populate({
                 path: 'subRequests',
                 populate: {
