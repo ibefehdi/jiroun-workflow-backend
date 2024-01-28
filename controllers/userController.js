@@ -391,7 +391,7 @@ exports.getUserDetails = async (req, res) => {
 };
 exports.getAllUsersnontable = async (req, res, next) => {
     try {
-            const users = await User.find({
+        const users = await User.find({
             occupation: { $nin: ['Contractor', 'Foreman', 'Developer'] }
 
         }, {
@@ -401,6 +401,21 @@ exports.getAllUsersnontable = async (req, res, next) => {
             lName: 1,
             occupation: 1,
         });
+
+
+
+        // Send the response in the requested format
+        res.status(200).json(users);
+
+    } catch (err) {
+        console.error(err);  // Add this line to log the error
+        res.status(500).json({ message: err.message });
+    }
+};
+exports.getAlloftheUsersNontable = async (req, res, next) => {
+    try {
+        const users = await User.find({}, { _id: 1, fName: 1, lName: 1, username: 1, occupation: 1 });
+
 
 
 
