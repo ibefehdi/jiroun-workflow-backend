@@ -50,8 +50,7 @@ exports.getAllRequests = async (req, res) => {
         }
 
         const requests = await Request.find(queryConditions)
-            .skip(skip)
-            .limit(resultsPerPage)
+           
             .populate('contractorForPayment')
             .populate('project')
             .populate({
@@ -68,8 +67,8 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).lean();
-        const deletedRequests = await DeletedRequest.find(queryConditions).skip(skip)
-            .limit(resultsPerPage)
+        console.log("Requests:", requests.length);
+        const deletedRequests = await DeletedRequest.find(queryConditions)
             .populate('project')
             .populate({
                 path: 'subRequests',
@@ -78,8 +77,8 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).lean();
-        const completedRequests = await CompletedRequest.find(queryConditions).skip(skip)
-            .limit(resultsPerPage)
+        console.log("Deleted Requests:", deletedRequests.length);
+        const completedRequests = await CompletedRequest.find(queryConditions)
             .populate('project')
             .populate({
                 path: 'subRequests',
@@ -88,8 +87,8 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).lean();
-        const unpaidRequests = await UnpaidRequest.find(queryConditions).skip(skip)
-            .limit(resultsPerPage)
+        console.log("Completed Requests:", completedRequests.length)
+        const unpaidRequests = await UnpaidRequest.find(queryConditions)
             .populate('project')
             .populate({
                 path: 'subRequests',
@@ -98,6 +97,7 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).lean();
+        console.log("Unpaid Requests:", unpaidRequests.length)
         const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
 
         const countRequests = await Request.count(queryConditions);
@@ -105,9 +105,12 @@ exports.getAllRequests = async (req, res) => {
         const countCompletedRequests = await CompletedRequest.countDocuments(queryConditions);
         const countUnpaidRequests = await UnpaidRequest.countDocuments(queryConditions);
         const totalCount = countRequests + countDeletedRequests + countCompletedRequests + countUnpaidRequests;
-        combinedRequests.sort((b, a) => a.requestID - b.requestID);
+        const startIndex = (page - 1) * resultsPerPage;
+        const endIndex = startIndex + resultsPerPage;
+        const paginatedResults = combinedRequests.slice(startIndex, endIndex);
+        // combinedRequests.sort((b, a) => a.requestID - b.requestID);
         res.status(200).json({
-            data: combinedRequests,
+            data: paginatedResults,
             count: totalCount,
             metadata: { total: totalCount }
         });
