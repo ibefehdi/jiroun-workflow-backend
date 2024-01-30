@@ -82,9 +82,7 @@ exports.completeUnpaidRequests = async (req, res) => {
 }
 exports.getItemUnpaidRequests = async function (req, res) {
     try {
-        const page = parseInt(req.query.page, 10) || 1;
-        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
-        const skip = (page - 1) * resultsPerPage;
+        
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;
         const initiator = req.query.initiator;
@@ -108,8 +106,7 @@ exports.getItemUnpaidRequests = async function (req, res) {
             queryConditions.project = project;
         }
         const requests = await UnpaidRequest.find({ ...queryConditions, requestType: "Request Item" })
-            .skip(skip)
-            .limit(resultsPerPage)
+            
             .populate('project')
             .populate('initiator')
             .populate({
