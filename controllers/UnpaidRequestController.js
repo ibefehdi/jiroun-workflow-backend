@@ -125,7 +125,7 @@ exports.getItemUnpaidRequests = async function (req, res) {
         const count = await UnpaidRequest.countDocuments({ ...queryConditions, requestType: "Request Item" });
         const startIndex = (page - 1) * resultsPerPage;
         const endIndex = startIndex + resultsPerPage;
-        const paginatedResults = combinedRequests.slice(startIndex, endIndex);
+        const paginatedResults = requests.slice(startIndex, endIndex);
         res.status(200).send({ data: paginatedResults, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching or updating requests', error });
