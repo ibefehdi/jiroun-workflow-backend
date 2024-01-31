@@ -23,7 +23,7 @@ exports.getAllUnpaidRequests = async (req, res) => {
         const startIndex = (page - 1) * resultsPerPage;
         const endIndex = startIndex + resultsPerPage;
         const paginatedResults = requests.slice(startIndex, endIndex);
-            
+
         res.status(200).json({ data: paginatedResults, count: count, metadata: { total: count } });
 
     } catch (error) {
@@ -85,11 +85,14 @@ exports.completeUnpaidRequests = async (req, res) => {
 }
 exports.getItemUnpaidRequests = async function (req, res) {
     try {
-
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;
         const initiator = req.query.initiator;
         const project = req.query.project;
+        const skip = (page - 1) * resultsPerPage;
+
         // Build query conditions based on filters
         let queryConditions = {};
 
@@ -120,7 +123,10 @@ exports.getItemUnpaidRequests = async function (req, res) {
                 },
             });
         const count = await UnpaidRequest.countDocuments({ ...queryConditions, requestType: "Request Item" });
-        res.status(200).send({ data: requests, count: count, metadata: { total: count } });
+        const startIndex = (page - 1) * resultsPerPage;
+        const endIndex = startIndex + resultsPerPage;
+        const paginatedResults = combinedRequests.slice(startIndex, endIndex);
+        res.status(200).send({ data: paginatedResults, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching or updating requests', error });
 
