@@ -84,3 +84,26 @@ exports.getCompletedRequestById = async (req, res) => {
         res.status(500).json({ message: 'Error fetching request', error });
     }
 };
+exports.createCompleteRequest = async (req, res) => {
+    try {
+        const request = await Request.findById(req.params.id);
+
+        if (!request) {
+            return res.status(404).send('Request not found');
+        }
+
+        const comments = req.body.comments;
+        const progress = req.body.progress;
+        const completedRequest = new CompletedRequest({
+            ...request.toObject(),
+            comments,
+            progress
+        });
+        await completedRequest.save();
+        res.status(200).send('Request deleted successfully');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+
+}
