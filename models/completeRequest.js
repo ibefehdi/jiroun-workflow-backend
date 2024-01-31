@@ -26,8 +26,8 @@ const completeRequestSchema = new mongoose.Schema({
     subRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubRequest' }],
     globalStatus: { type: Number, enum: [0, 1, 2], default: 0 },
     requestID: { type: Number },
-    progress: { type: Number, default: 100 }
-
+    progress: { type: Number, default: 100 },
+    requestFinalizedAt: { type: Date }
 }, { timestamps: true })
 
 

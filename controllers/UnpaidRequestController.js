@@ -36,6 +36,7 @@ exports.completeUnpaidRequests = async (req, res) => {
         // Validate input
         const requestId = req.params.id;
         const reference = req.body.reference;
+        const timeStamp = new Date();
 
         if (!requestId || !reference) {
             return res.status(400).json({ message: 'Invalid input' });
@@ -51,7 +52,7 @@ exports.completeUnpaidRequests = async (req, res) => {
         // Update the request
         request.referenceNumber = reference;
         request.progress = 100;
-
+        request.timeStamp = timeStamp;
         // Save the updated request
         await request.save();
         const initiator = await User.findById(request.initiator);
@@ -121,12 +122,11 @@ exports.getItemUnpaidRequests = async function (req, res) {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            });
+            })
+            .skip(skip)
+            .limit(resultsPerPage);
         const count = await UnpaidRequest.countDocuments({ ...queryConditions, requestType: "Request Item" });
-        const startIndex = (page - 1) * resultsPerPage;
-        const endIndex = startIndex + resultsPerPage;
-        const paginatedResults = requests.slice(startIndex, endIndex);
-        res.status(200).send({ data: paginatedResults, count: count, metadata: { total: count } });
+        res.status(200).send({ data: requests, count: count, metadata: { total: count } });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching or updating requests', error });
 
