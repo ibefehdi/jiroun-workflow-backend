@@ -91,16 +91,17 @@ exports.createCompleteRequest = async (req, res) => {
         if (!request) {
             return res.status(404).send('Request not found');
         }
-
+        const requestFinalizedAt = new Date();
         const comments = req.body.comments;
         const progress = req.body.progress;
         const completedRequest = new CompletedRequest({
             ...request.toObject(),
             comments,
-            progress
+            progress,
+            requestFinalizedAt,
         });
         await completedRequest.save();
-        res.status(200).send('Request deleted successfully');
+        res.status(200).send('Request Completed successfully');
     } catch (err) {
         console.error(err);
         res.status(500).send(err.message);

@@ -80,20 +80,25 @@ const Request = mongoose.model('Request', requestSchema);
 
 const deletedRequestSchema = new mongoose.Schema({
     ...requestSchema.obj,
-    comments: { type: String }
+    comments: { type: String },
+    requestDeletedAt: { type: Date }
+
 });
 const DeletedRequest = mongoose.model('DeletedRequest', deletedRequestSchema);
-const completedRequestSchema = new mongoose.Schema({
-    ...requestSchema.obj,
-    referenceNumber: { type: String },
-    comments: { type: String }
-});
-const CompletedRequest = mongoose.model('CompletedRequest', completedRequestSchema);
+
 const unpaidRequestSchema = new mongoose.Schema({
     ...requestSchema.obj,
-    comments: { type: String }
+    comments: { type: String },
+    requestFinalApprovalAt: { type: Date }
 })
 const UnpaidRequest = mongoose.model('UnpaidRequest', unpaidRequestSchema)
+const completedRequestSchema = new mongoose.Schema({
+    ...unpaidRequestSchema.obj,
+    referenceNumber: { type: String },
+    comments: { type: String },
+    requestFinalizedAt: { type: Date }
+});
+const CompletedRequest = mongoose.model('CompletedRequest', completedRequestSchema);
 module.exports.Counter = Counter;
 module.exports.SubRequest = SubRequest;
 module.exports.Request = Request;

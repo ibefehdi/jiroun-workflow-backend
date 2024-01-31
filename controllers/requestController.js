@@ -823,10 +823,11 @@ exports.deleteRequest = async (req, res) => {
         }
 
         const comments = req.body.comments;
-
+        const timeStamp = new Date();
         const deletedRequest = new DeletedRequest({
             ...request.toObject(),
-            comments
+            comments,
+            timeStamp,
         });
         await deletedRequest.save();
         const initiator = await User.findById(deletedRequest.initiator);
@@ -871,10 +872,12 @@ exports.createCompleteRequest = async (req, res) => {
         const comments = req.body.comments;
         const progress = req.body.progress;
         const referenceNumber = req.body.referenceNumber;
+        const requestFinalizedAt = new Date();
         const completedRequest = new CompletedRequest({
             ...request.toObject(),
             comments,
             progress,
+            requestFinalizedAt,
             referenceNumber
         });
         await completedRequest.save();
@@ -949,13 +952,14 @@ exports.createUnpaidRequest = async (req, res) => {
         if (!request) {
             return res.status(404).send('Request not found');
         }
-
+        const requestFinalApprovalAt = new Date();
         const comments = req.body.comments;
         const progress = 90;
         const unpaidRequest = new UnpaidRequest({
             ...request.toObject(),
             comments,
-            progress
+            progress,
+            requestFinalApprovalAt
         });
         await unpaidRequest.save();
 
