@@ -20,8 +20,11 @@ exports.getAllUnpaidRequests = async (req, res) => {
             });
         const count = await UnpaidRequest.countDocuments();
         requests.sort((a, b) => b.requestID - a.requestID);
-
-        res.status(200).json({ data: requests, count: count, metadata: { total: count } });
+        const startIndex = (page - 1) * resultsPerPage;
+        const endIndex = startIndex + resultsPerPage;
+        const paginatedResults = requests.slice(startIndex, endIndex);
+            
+        res.status(200).json({ data: paginatedResults, count: count, metadata: { total: count } });
 
     } catch (error) {
         console.error(error);
@@ -82,7 +85,7 @@ exports.completeUnpaidRequests = async (req, res) => {
 }
 exports.getItemUnpaidRequests = async function (req, res) {
     try {
-        
+
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;
         const initiator = req.query.initiator;
@@ -106,7 +109,7 @@ exports.getItemUnpaidRequests = async function (req, res) {
             queryConditions.project = project;
         }
         const requests = await UnpaidRequest.find({ ...queryConditions, requestType: "Request Item" })
-            
+
             .populate('project')
             .populate('initiator')
             .populate({
