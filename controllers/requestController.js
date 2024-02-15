@@ -444,7 +444,7 @@ exports.editRequestItems = async (req, res) => {
         }
 
         // Extract the items and amounts from the request body
-        const { updatedItems, estimatedAmount, totalAmount, paidAmount, requiredAmount } = req.body;
+        const { updatedItems, estimatedAmount, totalAmount, paidAmount, requiredAmount, noOfLabour, priceOfLabour, transportationPrice } = req.body;
         // Iterate through the updated items and match them with the existing items in the request
         updatedItems?.forEach(updatedItem => {
             const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
@@ -454,7 +454,9 @@ exports.editRequestItems = async (req, res) => {
                 existingItem.totalPrice = updatedItem.totalPrice;
             }
         });
-
+        request.noOfLabour = noOfLabour;
+        request.priceOfLabour = priceOfLabour;
+        request.transportationPrice = transportationPrice
         request.estimatedAmount = estimatedAmount;
         request.totalAmount = totalAmount;
         request.paidAmount = paidAmount;
@@ -1019,5 +1021,15 @@ exports.createUnpaidRequest = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send(err.message);
+    }
+}
+exports.getRequestInitiator = async (req, res) => {
+    try {
+        const request = await Request.findById(req.params.id).populate('initiator');
+        const initiator = request.initiator;
+        console.log(initiator);
+        res.status(200).json([initiator]);
+    } catch (err) {
+        res, status(500).send(err.message);
     }
 }

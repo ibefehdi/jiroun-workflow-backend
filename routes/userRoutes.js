@@ -19,7 +19,8 @@ const { getAllUsers,
     editUser,
     getAllUsersnontable,
     getUserDetails,
-    getAlloftheUsersNontable } = require('../controllers/userController')
+    getAlloftheUsersNontable } = require('../controllers/userController');
+const { getRequestInitiator } = require('../controllers/requestController');
 
 
 router.post('/users/signup', addUser);
@@ -53,5 +54,6 @@ router.get('/users/qos', getQosUsers);
 router.get('/users/foremen', getForemenUsers);
 
 router.get('/users/allcontractors', getAllContractorUsers)
+router.get('/users/initiator/:id', getRequestInitiator)
 
 module.exports = router;
