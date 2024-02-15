@@ -208,7 +208,7 @@ exports.getPendingRequests = async (req, res) => {
             .populate({
                 path: 'subRequests',
                 populate: {
-                    path: 'sender recipient ',
+                    path: 'sender recipient',
                     model: 'User',
                 },
             });
@@ -218,6 +218,7 @@ exports.getPendingRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching pending requests', error });
     }
 };
+
 exports.getAllSendersInRequest = async (req, res) => {
     try {
         // Find the request by ID and populate the 'sender' field in 'subRequests'
@@ -671,7 +672,20 @@ exports.getRequestByReceiverCount = async (req, res) => {
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
         const skip = (page - 1) * resultsPerPage;
         const requests = await Request.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { recipient: userId, isFinalized: 0 },
+                populate: {
+                    path: 'sender',
+                    select: 'fName lName'
 
+                }
+            })
+            .populate('project')
+            .populate('contractorForPayment')
+            .populate('initiator')
+            .exec();
 
         const extractedData = [];
         requests.forEach(request => {
@@ -682,6 +696,7 @@ exports.getRequestByReceiverCount = async (req, res) => {
                         requestID: request.requestID,
                         isFinalized: subRequest.isFinalized,
                         subRequestSentAt: subRequest.subRequestSentAt,
+                        requestTitle: request.requestTitle,
                         projectName: request.project.projectName,
                         requestType: request.requestType,
                         contractorForPayment: request.contractorForPayment,
@@ -701,6 +716,7 @@ exports.getRequestByReceiverCount = async (req, res) => {
         res.status(500).json({ message: 'Error getting requests by receiver', error });
     }
 };
+
 
 
 exports.updatePreviousSubRequest = async (req, res) => {
