@@ -49,6 +49,8 @@ router.get('/getAllSenders/:id', getSendersFromSubRequests)
 router.post('/requests', createRequest);
 router.get('/requests/sender/:userId', getRequestBySender);
 router.get('/requests/receiver/:userId', getRequestByReceiver)
+router.get('/requestscount/receiver/:userId', getRequestByReceiverCount)
+
 router.get('/requests/receiverCount/:userId', getRequestByReceiverCount)
 
 router.put('/subrequests/:subrequestId', editSubRequest)

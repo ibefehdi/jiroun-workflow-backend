@@ -118,31 +118,70 @@ exports.editSubContract = async (req, res) => {
 
 
 exports.getSubContractsForProject = async (req, res) => {
-    const { projectId } = req.params; // Assuming you're passing the project ID in the URL
+    const { projectId } = req.params;
 
     try {
-        // Find the project with the given ID and populate subcontracts
-        const project = await ContractorWorkRepository.findOne({ project: projectId })
-            .populate({
-                path: 'subContracts',
-                populate: {
-                    path: 'contractor',
-                    model: 'User'
+        const projectIdObj = new mongoose.Types.ObjectId(projectId);
+        console.log(projectIdObj);
+        const aggregatedProjects = await ContractorWorkRepository.aggregate([
+            { $match: { project: projectIdObj } },
+            {
+                $lookup: {
+                    from: 'subcontracts', // Correct collection name for subcontracts
+                    localField: 'subContracts',
+                    foreignField: '_id',
+                    as: 'subContractDetails'
                 }
-            });
+            },
+            {
+                $lookup: {
+                    from: 'users', // Assuming 'users' is the collection for contractors
+                    localField: 'contractor',
+                    foreignField: '_id',
+                    as: 'contractorDetails'
+                }
+            },
+            { $unwind: "$contractorDetails" },
+            {
+                $project: {
+                    _id: 0,
 
-        if (!project) {
-            return res.status(404).send('Project not found');
+                    subContracts: {
+                        $map: {
+                            input: "$subContractDetails",
+                            as: "subContract",
+                            in: {
+                                name: "$$subContract.name",
+                                quantity: "$$subContract.quantity",
+                                unitPrice: "$$subContract.unitPrice",
+                                totalPrice: "$$subContract.totalPrice",
+                                paidAmount: "$$subContract.paidAmount",
+                                percentage: "$$subContract.percentage",
+                                contractor: {
+                                    fName: "$contractorDetails.fName",
+                                    lName: "$contractorDetails.lName",
+                                    id: "$contractorDetails._id"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+        console.log(aggregatedProjects);
+        if (!aggregatedProjects || aggregatedProjects.length === 0) {
+            return res.status(404).send('Projects not found');
         }
 
-        // Extracting subcontracts from the project
-        const subContracts = project.subContracts;
-
-        res.status(200).send(subContracts);
+        res.status(200).send(aggregatedProjects);
     } catch (error) {
         res.status(500).send('Server error: ' + error.message);
     }
 };
+
+
+
+
 exports.getSubContractsForProjectCount = async (req, res) => {
     const { projectId } = req.params; // Assuming you're passing the project ID in the URL
     console.log(projectId);
