@@ -412,7 +412,7 @@ exports.createRequest = async (req, res) => {
             html: `
                 <div style="font-family: Arial, sans-serif;">
                     <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
-                    <p> <span style="color:red; font-weight:bolder">[NEW REQUEST]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
+                    <p><span style="color:red; font-weight:bolder">[NEW REQUEST]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
                     <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> for details.</p>
                 </div>
             `
@@ -444,16 +444,16 @@ exports.editRequestItems = async (req, res) => {
         }
 
         // Extract the items and amounts from the request body
-        const { updatedItems, estimatedAmount, totalAmount, paidAmount, requiredAmount, noOfLabour, priceOfLabour, transportationPrice } = req.body;
+        const { estimatedAmount, totalAmount, paidAmount, requiredAmount, noOfLabour, priceOfLabour, transportationPrice } = req.body;
         // Iterate through the updated items and match them with the existing items in the request
-        updatedItems?.forEach(updatedItem => {
-            const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
-            if (existingItem) {
-                existingItem.itemQuantity = updatedItem.itemQuantity;
-                existingItem.unitPrice = updatedItem.unitPrice;
-                existingItem.totalPrice = updatedItem.totalPrice;
-            }
-        });
+        // updatedItems?.forEach(updatedItem => {
+        //     const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
+        //     if (existingItem) {
+        //         existingItem.itemQuantity = updatedItem.itemQuantity;
+        //         existingItem.unitPrice = updatedItem.unitPrice;
+        //         existingItem.totalPrice = updatedItem.totalPrice;
+        //     }
+        // });
         request.noOfLabour = noOfLabour;
         request.priceOfLabour = priceOfLabour;
         request.transportationPrice = transportationPrice
