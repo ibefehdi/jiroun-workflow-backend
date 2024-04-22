@@ -8,10 +8,10 @@ const Counter = mongoose.model('Counter', counterSchema);
 
 const subRequestSchema = new mongoose.Schema({
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     isFinalized: { type: Number, enum: [0, 1, 2], default: 0 },
     subRequestSentAt: { type: Date },
-    comments: { type: String, required: true },
+    comments: { type: String },
 }, { timestamps: true });
 
 const SubRequest = mongoose.model('SubRequest', subRequestSchema);

@@ -756,6 +756,7 @@ exports.editSubRequest = async (req, res) => {
     try {
         const subrequestId = req.params.subrequestId;
         const { isFinalized } = req.body;
+        console.log("Subrequest ID: " + subrequestId + " isFinalized: " + isFinalized);
         const subRequest = await SubRequest.findById({ _id: subrequestId });
         if (!subRequest) {
             return res.status(404).json({ message: 'SubRequest not found' });
@@ -972,6 +973,8 @@ exports.createUnpaidRequest = async (req, res) => {
         }
         const requestFinalApprovalAt = new Date();
         const comments = req.body.comments;
+        const recipient = req.body.recipient;
+        console.log(recipient);
         const progress = 90;
         const unpaidRequest = new UnpaidRequest({
             ...request.toObject(),
