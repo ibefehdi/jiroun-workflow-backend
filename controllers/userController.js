@@ -180,6 +180,7 @@ exports.addUser = async (req, res, next) => {
 };
 exports.loginUser = async (req, res, next) => {
     passport.authenticate("local", async function (err, user, info) {
+        console.log(user);
         if (err) {
             return next(err);
         }
@@ -408,7 +409,7 @@ exports.getAllUsersnontable = async (req, res, next) => {
 };
 exports.getAlloftheUsersNontable = async (req, res, next) => {
     try {
-        const users = await User.find({ occupation: { $nin: ['Foreman', 'Developer'] } }, { _id: 1, fName: 1, lName: 1, username: 1, occupation: 1 });
+        const users = await User.find({ occupation: { $nin: ['Contractor'] } }, { _id: 1, fName: 1, lName: 1, username: 1, occupation: 1 });
         res.status(200).json(users);
 
     } catch (err) {
