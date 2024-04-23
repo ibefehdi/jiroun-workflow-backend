@@ -120,7 +120,7 @@ exports.getItemUnpaidRequests = async function (req, res) {
                     model: 'User',
                 },
             })
-           
+
         const count = await UnpaidRequest.countDocuments({ ...queryConditions, requestType: "Request Item" });
         res.status(200).send({ data: requests, count: count, metadata: { total: count } });
     } catch (error) {
@@ -178,7 +178,53 @@ exports.getPaymentUnpaidRequests = async function (req, res) {
 
     }
 }
+exports.getLabourUnpaidRequests = async function (req, res) {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+        const initiator = req.query.initiator;
+        const project = req.query.project;
+        // Build query conditions based on filters
+        let queryConditions = {};
 
+        if (startDate || endDate) {
+            queryConditions.createdAt = {};
+            if (startDate) {
+                queryConditions.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                queryConditions.createdAt.$lte = new Date(endDate);
+            }
+        }
+        if (initiator) {
+            queryConditions.initiator = initiator;
+        }
+
+        if (project) {
+            queryConditions.project = project;
+        }
+        const skip = (page - 1) * resultsPerPage;
+        const requests = await UnpaidRequest.find({ ...queryConditions, requestType: "Request Labour" }).skip(skip)
+            .limit(resultsPerPage)
+            .populate('project')
+            .populate('initiator')
+
+            .populate({
+                path: 'subRequests',
+                populate: {
+                    path: 'sender recipient',
+                    model: 'User',
+                },
+            });
+        const count = await UnpaidRequest.countDocuments({ ...queryConditions, requestType: "Request Payment" })
+        res.status(200).send({ data: requests, count: count, metadata: { total: count } });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching or updating requests', error });
+
+    }
+}
 exports.getUnpaidRequestById = async (req, res) => {
     try {
 
