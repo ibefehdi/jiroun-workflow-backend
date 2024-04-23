@@ -454,13 +454,15 @@ exports.editRequestItems = async (req, res) => {
         //         existingItem.totalPrice = updatedItem.totalPrice;
         //     }
         // });
-        request.noOfLabour = noOfLabour;
-        request.priceOfLabour = priceOfLabour;
-        request.transportationPrice = transportationPrice
-        request.estimatedAmount = estimatedAmount;
-        request.totalAmount = totalAmount;
-        request.paidAmount = paidAmount;
-        request.requiredAmount = requiredAmount;
+
+        if (noOfLabour !== undefined && noOfLabour !== null) request.noOfLabour = noOfLabour;
+        if (priceOfLabour !== undefined && priceOfLabour !== null) request.priceOfLabour = priceOfLabour;
+        if (transportationPrice !== undefined && transportationPrice !== null) request.transportationPrice = transportationPrice;
+        if (estimatedAmount !== undefined && estimatedAmount !== null) request.estimatedAmount = estimatedAmount;
+        if (totalAmount !== undefined && totalAmount !== null) request.totalAmount = totalAmount;
+        if (paidAmount !== undefined && paidAmount !== null) request.paidAmount = paidAmount;
+        if (requiredAmount !== undefined && requiredAmount !== null) request.requiredAmount = requiredAmount;
+
         // Save the request with the updated items and amounts
         await request.save();
 
