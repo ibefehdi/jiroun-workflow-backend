@@ -74,7 +74,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            }).lean();
+            }).exec();
         console.log("Requests:", requests.length);
         const deletedRequests = await DeletedRequest.find(queryConditions)
             .populate('project').populate('initiator').populate('contractorForPayment')
@@ -84,7 +84,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            }).lean();
+            }).exec();
         console.log("Deleted Requests:", deletedRequests.length);
         const completedRequests = await CompletedRequest.find(queryConditions)
             .populate('project').populate('initiator').populate('contractorForPayment')
@@ -94,7 +94,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            }).lean();
+            }).exec();
         console.log("Completed Requests:", completedRequests.length)
         const unpaidRequests = await UnpaidRequest.find(queryConditions)
             .populate('project').populate('initiator').populate('contractorForPayment')
@@ -104,7 +104,7 @@ exports.getAllRequests = async (req, res) => {
                     path: 'sender recipient',
                     model: 'User',
                 },
-            }).lean();
+            }).exec();
         console.log("Unpaid Requests:", unpaidRequests.length)
         const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
 
@@ -118,7 +118,7 @@ exports.getAllRequests = async (req, res) => {
         const paginatedResults = combinedRequests.slice(startIndex, endIndex);
         // combinedRequests.sort((b, a) => a.requestID - b.requestID);
         res.status(200).json({
-            data: paginatedResults,
+            data: combinedRequests,
             count: totalCount,
             metadata: { total: totalCount }
         });

@@ -1,4 +1,4 @@
-const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest } = require('../models/requestSchema');
+const { Request, SubRequest, Counter, DeletedRequest, UnpaidRequest, CompletedRequest } = require('../models/requestSchema');
 
 const mongoose = require('mongoose');
 exports.getAllCompletedRequests = async (req, res) => {
@@ -108,3 +108,46 @@ exports.createCompleteRequest = async (req, res) => {
     }
 
 }
+exports.completeUnpaidItemRequests = async (req, res) => {
+    try {
+        // Fetch all UnpaidRequest with requestType "Request Item"
+        const unpaidRequests = await UnpaidRequest.find({ requestType: "Request Item" });
+
+        if (!unpaidRequests.length) {
+            return res.status(404).send('No Unpaid Item Requests found');
+        }
+
+        // Date when requests are finalized
+        const requestFinalizedAt = new Date();
+
+        // Define the completion details
+        const progress = 100;
+        const comments = "Done on behalf of Mr. Maher";
+        const referenceNumber = "No Reference Number"
+        // Process each unpaid request
+        const results = unpaidRequests.map(async (unpaidRequest) => {
+            const completedRequest = new CompletedRequest({
+                ...unpaidRequest.toObject(),
+                comments,
+                progress,
+                referenceNumber,
+                requestFinalizedAt,
+            });
+            await completedRequest.save();
+
+            // Delete the unpaid request from the database
+            await UnpaidRequest.findByIdAndDelete(unpaidRequest._id);
+            return completedRequest;
+        });
+
+        // Wait for all promises to resolve
+        await Promise.all(results);
+
+        // Send success response
+        res.status(200).send(`${results.length} Item Requests Completed and Deleted Successfully`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+}
+
