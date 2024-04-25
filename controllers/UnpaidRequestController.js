@@ -84,6 +84,41 @@ exports.completeUnpaidRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching or updating requests', error });
     }
 }
+exports.completeAllUnpaidItemRequests = async (req, res) => {
+    try {
+        // Fetch all unpaid requests with requestType "Request Item"
+        const unpaidItemRequests = await UnpaidRequest.find({
+            requestType: "Request Item"
+        });
+        console.log(unpaidItemRequests.length);
+        if (unpaidItemRequests.length === 0) {
+            return res.status(404).json({ message: 'No unpaid "Request Item" requests found' });
+        }
+
+        const timeStamp = new Date();
+        const updates = unpaidItemRequests.map(async (request) => {
+            console.log(request)
+            // Update each request
+            request.referenceNumber = "none";
+            request.progress = 100;
+            request.timeStamp = timeStamp;
+
+            // Save the updated request
+            return request.save();
+        });
+
+        // Await all updates to finish
+        await Promise.all(updates);
+
+        res.status(200).json({ message: 'All "Request Item" requests have been completed' });
+
+    } catch (error) {
+        console.error('Error processing requests:', error);
+        res.status(500).json({ message: 'Error processing requests', error });
+    }
+};
+
+
 exports.getItemUnpaidRequests = async function (req, res) {
     try {
         const startDate = req.query.startDate;
