@@ -140,8 +140,6 @@ exports.getRequestById = async (req, res) => {
                         path: 'sender recipient',
                         model: 'User',
                     }
-
-
                 })
                 .populate('initiator').populate('contractorForPayment')
                 .populate({
@@ -151,7 +149,7 @@ exports.getRequestById = async (req, res) => {
                         model: 'User',
                     }
                 })
-                .lean(); // Use lean() for faster reads without Mongoose overhead
+                .lean();
         };
 
         // Initiate parallel searches
@@ -163,10 +161,20 @@ exports.getRequestById = async (req, res) => {
         ]);
 
         // Return the first non-null result
-        const foundRequest = request || unpaidRequest || completedRequest || deletedRequest;
+        let foundRequest = request || unpaidRequest || completedRequest || deletedRequest;
 
         if (!foundRequest) {
             return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // Add completionReason or deletedReason based on the request type
+        if (completedRequest) {
+            foundRequest.completionReason = completedRequest.comments;
+        } else if (deletedRequest) {
+            foundRequest.deletedReason = deletedRequest.comments;
+        }
+        else if (unpaidRequest) {
+            foundRequest.unpaidReason = unpaidRequest.comments;
         }
 
         res.status(200).json(foundRequest);
@@ -174,7 +182,6 @@ exports.getRequestById = async (req, res) => {
         res.status(500).json({ message: 'Error fetching request', error });
     }
 };
-
 
 exports.getRequestsByProjectId = async (req, res) => {
     try {
@@ -1033,8 +1040,8 @@ exports.getRequestInitiator = async (req, res) => {
         const request = await Request.findById(req.params.id).populate('initiator');
         const initiator = request.initiator;
         console.log(initiator);
-        res.status(200).json([initiator]);
+        res.status(200).json({ initiator: initiator });
     } catch (err) {
-        res, status(500).send(err.message);
+        res.status(500).send(err.message);
     }
 }
