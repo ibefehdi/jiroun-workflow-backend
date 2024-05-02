@@ -12,10 +12,122 @@ let transporter = nodemailer.createTransport({
         pass: 'Sm@Rt@Server'
     }
 });
+// exports.getAllRequests = async (req, res) => {
+//     try {
+//         const page = parseInt(req.query.page, 10) || 1;
+//         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
+//         const requestType = req.query.requestType;
+//         const startDate = req.query.startDate;
+//         const endDate = req.query.endDate;
+//         const initiator = req.query.initiator;
+//         const contractorForPayment = req.query.contractorForPayment;
+//         const project = req.query.project;
+//         const requestID = req.query.requestID;
+//         const skip = (page - 1) * resultsPerPage;
+
+//         // Build query conditions based on filters
+//         let queryConditions = {};
+//         if (requestType) {
+
+
+//             queryConditions.requestType = requestType;
+//         }
+//         if (startDate || endDate) {
+//             queryConditions.createdAt = {};
+//             if (startDate) {
+//                 queryConditions.createdAt.$gte = new Date(startDate);
+//             }
+//             if (endDate) {
+//                 queryConditions.createdAt.$lte = new Date(endDate);
+//             }
+//         }
+//         if (initiator) {
+//             queryConditions.initiator = initiator;
+//         }
+//         if (requestID) {
+//             const regex = new RegExp(requestID, 'i');
+//             queryConditions.$expr = { $regexMatch: { input: { $toString: "$requestID" }, regex: regex } };
+
+//         }
+//         if (contractorForPayment) {
+//             queryConditions.contractorForPayment = contractorForPayment;
+//         }
+//         if (project) {
+//             queryConditions.project = project;
+//         }
+
+//         const requests = await Request.find(queryConditions)
+
+//             .populate('contractorForPayment').populate('initiator').populate('contractorForPayment')
+
+//             .populate('project')
+//             .populate({
+//                 path: 'project',
+//                 populate: {
+//                     path: 'contractors projectManager projectDirector',
+//                     model: 'User',
+//                 }
+//             })
+//             .populate({
+//                 path: 'subRequests',
+//                 populate: {
+//                     path: 'sender recipient',
+//                     model: 'User',
+//                 },
+//             }).exec();
+//         console.log("Requests:", requests.length);
+//         const deletedRequests = await DeletedRequest.find(queryConditions)
+//             .populate('project').populate('initiator').populate('contractorForPayment')
+//             .populate({
+//                 path: 'subRequests',
+//                 populate: {
+//                     path: 'sender recipient',
+//                     model: 'User',
+//                 },
+//             }).exec();
+//         console.log("Deleted Requests:", deletedRequests.length);
+//         const completedRequests = await CompletedRequest.find(queryConditions)
+//             .populate('project').populate('initiator').populate('contractorForPayment')
+//             .populate({
+//                 path: 'subRequests',
+//                 populate: {
+//                     path: 'sender recipient',
+//                     model: 'User',
+//                 },
+//             }).exec();
+//         console.log("Completed Requests:", completedRequests.length)
+//         const unpaidRequests = await UnpaidRequest.find(queryConditions)
+//             .populate('project').populate('initiator').populate('contractorForPayment')
+//             .populate({
+//                 path: 'subRequests',
+//                 populate: {
+//                     path: 'sender recipient',
+//                     model: 'User',
+//                 },
+//             }).exec();
+//         console.log("Unpaid Requests:", unpaidRequests.length)
+//         const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
+
+//         const countRequests = await Request.count(queryConditions);
+//         const countDeletedRequests = await DeletedRequest.countDocuments(queryConditions);
+//         const countCompletedRequests = await CompletedRequest.countDocuments(queryConditions);
+//         const countUnpaidRequests = await UnpaidRequest.countDocuments(queryConditions);
+//         const totalCount = countRequests + countDeletedRequests + countCompletedRequests + countUnpaidRequests;
+//         const startIndex = (page - 1) * resultsPerPage;
+//         const endIndex = startIndex + resultsPerPage;
+//         const paginatedResults = combinedRequests.slice(startIndex, endIndex);
+//         // combinedRequests.sort((b, a) => a.requestID - b.requestID);
+//         res.status(200).json({
+//             data: combinedRequests,
+//             count: totalCount,
+//             metadata: { total: totalCount }
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Error fetching requests', error });
+//     }
+// };
 exports.getAllRequests = async (req, res) => {
     try {
-        const page = parseInt(req.query.page, 10) || 1;
-        const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
         const requestType = req.query.requestType;
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;
@@ -23,13 +135,10 @@ exports.getAllRequests = async (req, res) => {
         const contractorForPayment = req.query.contractorForPayment;
         const project = req.query.project;
         const requestID = req.query.requestID;
-        const skip = (page - 1) * resultsPerPage;
 
         // Build query conditions based on filters
         let queryConditions = {};
         if (requestType) {
-
-
             queryConditions.requestType = requestType;
         }
         if (startDate || endDate) {
@@ -46,8 +155,7 @@ exports.getAllRequests = async (req, res) => {
         }
         if (requestID) {
             const regex = new RegExp(requestID, 'i');
-            queryConditions.$expr = { $regexMatch: { input: { $toString: "$requestID" }, regex: regex } };
-
+            queryConditions.requestID = { $regex: regex };
         }
         if (contractorForPayment) {
             queryConditions.contractorForPayment = contractorForPayment;
@@ -56,69 +164,67 @@ exports.getAllRequests = async (req, res) => {
             queryConditions.project = project;
         }
 
-        const requests = await Request.find(queryConditions)
-
-            .populate('contractorForPayment').populate('initiator').populate('contractorForPayment')
-
-            .populate('project')
-            .populate({
-                path: 'project',
-                populate: {
-                    path: 'contractors projectManager projectDirector',
-                    model: 'User',
+        const aggregationPipeline = [
+            {
+                $match: queryConditions
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'contractorForPayment',
+                    foreignField: '_id',
+                    as: 'contractorForPayment'
                 }
-            })
-            .populate({
-                path: 'subRequests',
-                populate: {
-                    path: 'sender recipient',
-                    model: 'User',
-                },
-            }).exec();
-        console.log("Requests:", requests.length);
-        const deletedRequests = await DeletedRequest.find(queryConditions)
-            .populate('project').populate('initiator').populate('contractorForPayment')
-            .populate({
-                path: 'subRequests',
-                populate: {
-                    path: 'sender recipient',
-                    model: 'User',
-                },
-            }).exec();
-        console.log("Deleted Requests:", deletedRequests.length);
-        const completedRequests = await CompletedRequest.find(queryConditions)
-            .populate('project').populate('initiator').populate('contractorForPayment')
-            .populate({
-                path: 'subRequests',
-                populate: {
-                    path: 'sender recipient',
-                    model: 'User',
-                },
-            }).exec();
-        console.log("Completed Requests:", completedRequests.length)
-        const unpaidRequests = await UnpaidRequest.find(queryConditions)
-            .populate('project').populate('initiator').populate('contractorForPayment')
-            .populate({
-                path: 'subRequests',
-                populate: {
-                    path: 'sender recipient',
-                    model: 'User',
-                },
-            }).exec();
-        console.log("Unpaid Requests:", unpaidRequests.length)
-        const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
+            },
+            {
+                $unwind: {
+                    path: '$contractorForPayment',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'initiator',
+                    foreignField: '_id',
+                    as: 'initiator'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$initiator',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $lookup: {
+                    from: 'projects',
+                    localField: 'project',
+                    foreignField: '_id',
+                    as: 'project'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$project',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $facet: {
+                    requests: [],
+                    count: [
+                        { $count: 'totalCount' }
+                    ]
+                }
+            }
+        ];
 
-        const countRequests = await Request.count(queryConditions);
-        const countDeletedRequests = await DeletedRequest.countDocuments(queryConditions);
-        const countCompletedRequests = await CompletedRequest.countDocuments(queryConditions);
-        const countUnpaidRequests = await UnpaidRequest.countDocuments(queryConditions);
-        const totalCount = countRequests + countDeletedRequests + countCompletedRequests + countUnpaidRequests;
-        const startIndex = (page - 1) * resultsPerPage;
-        const endIndex = startIndex + resultsPerPage;
-        const paginatedResults = combinedRequests.slice(startIndex, endIndex);
-        // combinedRequests.sort((b, a) => a.requestID - b.requestID);
+        const [{ requests, count }] = await Request.aggregate(aggregationPipeline);
+        const totalCount = count.length > 0 ? count[0].totalCount : 0;
+
         res.status(200).json({
-            data: combinedRequests,
+            data: requests,
             count: totalCount,
             metadata: { total: totalCount }
         });
@@ -126,7 +232,6 @@ exports.getAllRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching requests', error });
     }
 };
-
 
 exports.getRequestById = async (req, res) => {
     try {
