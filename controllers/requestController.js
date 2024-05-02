@@ -653,6 +653,7 @@ exports.getRequestByReceiver = async (req, res) => {
                 if (subRequest.recipient._id.toString() === userId) {
                     extractedData.push({
                         _id: request._id,
+                        subrequestId: subRequest._id,
                         requestID: request.requestID,
                         isFinalized: subRequest.isFinalized,
                         subRequestSentAt: subRequest.subRequestSentAt,
