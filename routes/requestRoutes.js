@@ -23,7 +23,8 @@ const {
     getSendersFromSubRequests,
     getRequestByReceiverCount,
     editContractorinRequest,
-    getRequestInitiator
+    getRequestInitiator,
+    rejectandremove
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -46,6 +47,7 @@ router.post('/requests/:requestId', createSubRequest)
 router.get('/requests/:id', getRequestById)
 
 router.get('/getAllSenders/:id', getSendersFromSubRequests)
+router.post('/rejectandremove/:id', rejectandremove)
 // Create a request
 router.post('/requests', createRequest);
 router.get('/requests/sender/:userId', getRequestBySender);

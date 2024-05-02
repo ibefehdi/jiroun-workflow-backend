@@ -889,6 +889,62 @@ exports.deleteRequest = async (req, res) => {
     }
 
 }
+exports.rejectandremove = async (req, res) => {
+    try {
+        const request = await Request.findById(req.params.id);
+        const { isFinalized,comments } = req.body;
+
+        if (!request) {
+            return res.status(404).send('Request not found');
+        }
+        const lastSubRequestId = request.subRequests[request.subRequests.length - 2];
+
+        // Find the subrequest by ID and update isFinalized
+        const subRequest = await SubRequest.findById(lastSubRequestId);
+        if (!subRequest) {
+            return res.status(404).json({ message: 'SubRequest not found' });
+        }
+
+        subRequest.isFinalized = isFinalized;
+        await subRequest.save();
+        const timeStamp = new Date();
+        const deletedRequest = new DeletedRequest({
+            ...request.toObject(),
+            comments,
+            timeStamp,
+        });
+        await deletedRequest.save();
+        const initiator = await User.findById(deletedRequest.initiator);
+
+        const mailOptions = {
+            from: 'noreply@smartlifekwt.com',
+            to: initiator?.email,
+            subject: `[REJECTED] Your Request No ${deletedRequest?.requestID} has been Rejected.`,
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Hello ${initiator?.fName} ${initiator?.lName},</h2>
+                    <p> <span style="color:red; font-weight:bolder">[COMPLETED]:</span>The Request No ${deletedRequest?.requestID} has been completed that was raised by you.</strong>.</p>
+                </div>
+            `
+        };
+
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
+        await Request.findByIdAndDelete(req.params.id);
+
+        res.status(200).send('Request deleted successfully');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+
+}
 exports.createCompleteRequest = async (req, res) => {
     try {
         const request = await UnpaidRequest.findById(req.params.id);
