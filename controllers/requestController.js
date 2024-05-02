@@ -892,12 +892,12 @@ exports.deleteRequest = async (req, res) => {
 exports.rejectandremove = async (req, res) => {
     try {
         const request = await Request.findById(req.params.id);
-        const { isFinalized,comments } = req.body;
+        const { isFinalized, comments } = req.body;
 
         if (!request) {
             return res.status(404).send('Request not found');
         }
-        const lastSubRequestId = request.subRequests[request.subRequests.length - 2];
+        const lastSubRequestId = request.subRequests[request.subRequests.length - 1];
 
         // Find the subrequest by ID and update isFinalized
         const subRequest = await SubRequest.findById(lastSubRequestId);
