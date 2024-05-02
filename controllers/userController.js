@@ -222,7 +222,9 @@ exports.getAllUsers = async (req, res, next) => {
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
 
         const skip = (page - 1) * resultsPerPage;
-        const users = await User.find({ occupation: { $ne: 'Contractor' } }, {
+        const users = await User.find({
+            occupation: { $nin: ['Contractor', 'Inactive'] }
+        }, {
             _id: 1,
             username: 1,
             fName: 1,
@@ -236,7 +238,9 @@ exports.getAllUsers = async (req, res, next) => {
             .limit(resultsPerPage);
 
         // Get the count of all users
-        const count = await User.countDocuments({ occupation: { $ne: 'Contractor' } });
+        const count = await User.countDocuments({
+            occupation: { $nin: ['Contractor', 'Inactive'] }
+        },);
 
         // Send the response in the requested format
         res.status(200).json({
