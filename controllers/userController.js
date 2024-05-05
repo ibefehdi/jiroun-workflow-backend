@@ -85,7 +85,7 @@ exports.resetPassword = async (req, res) => {
         // If old password matches, hash the new password and update the user document
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
-        user.hasChangedPassword = true; // Set this flag to true since the password is being changed
+        user.hasChangedPassword = false;  
         await user.save();
 
         res.status(201).json({
