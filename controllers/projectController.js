@@ -19,8 +19,7 @@ exports.getAllProjects = async (req, res) => {
 
         // Fetch projects with pagination
         const projects = await Project.find()
-            .skip(skip)
-            .limit(resultsPerPage)
+
             .populate('contractors')
             .populate('projectManager')
             .populate('foremen')
