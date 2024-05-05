@@ -85,7 +85,7 @@ exports.resetPassword = async (req, res) => {
         // If old password matches, hash the new password and update the user document
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
-        user.hasChangedPassword = false;  
+        user.hasChangedPassword = false;
         await user.save();
 
         res.status(201).json({
@@ -277,8 +277,7 @@ exports.getContractorsUsers = async (req, res, next) => {
             occupation: 1,
             phoneNo: 1,
             email: 1,
-        }).skip(skip)
-            .limit(resultsPerPage);;
+        })
         const count = await User.countDocuments({ occupation: 'Contractor' });
 
 
