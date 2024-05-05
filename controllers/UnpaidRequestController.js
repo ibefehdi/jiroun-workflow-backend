@@ -241,8 +241,7 @@ exports.getLabourUnpaidRequests = async function (req, res) {
             queryConditions.project = project;
         }
         const skip = (page - 1) * resultsPerPage;
-        const requests = await UnpaidRequest.find({ ...queryConditions, requestType: "Request Labour" }).skip(skip)
-            .limit(resultsPerPage)
+        const requests = await UnpaidRequest.find({ ...queryConditions, requestType: "Request Labour" })
             .populate('project')
             .populate('initiator')
 
