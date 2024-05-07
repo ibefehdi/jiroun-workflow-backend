@@ -19,7 +19,8 @@ const { getAllUsers,
     editUser,
     getAllUsersnontable,
     getUserDetails,
-    getAlloftheUsersNontable } = require('../controllers/userController');
+    getAlloftheUsersNontable,
+    getProjectManagerAndDirectorUsers } = require('../controllers/userController');
 const { getRequestInitiator } = require('../controllers/requestController');
 
 
@@ -39,6 +40,8 @@ router.get('/userscount', getUsersCount);
 router.get('/users/contractors', getContractorsUsers);
 
 router.get('/users/projectmanagers', getProjectManagerUsers);
+router.get('/users/projectmanagersanddirectors', getProjectManagerAndDirectorUsers);
+
 router.get('/users/all', getAllUsersnontable)
 router.get('/users/allusersfilteration', getAlloftheUsersNontable)
 router.get('/users/projectdirectors', getProjectDirectorUsers);
