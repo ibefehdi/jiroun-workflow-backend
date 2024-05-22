@@ -2,6 +2,18 @@ const { Request, SubRequest, Counter, DeletedRequest, CompletedRequest, UnpaidRe
 const User = require('../models/userSchema');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
+const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        if (file.fieldname.startsWith('attachments_') || file.fieldname === 'attachment') {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid field name'));
+        }
+    }
+});
+const AWS = require('aws-sdk')
 
 let transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -353,93 +365,155 @@ exports.createSubRequest = async (req, res) => {
 
 
 exports.createRequest = async (req, res) => {
-    try {
-        // Extract fields for the request
-        const {
-            requestType,
-            project,
-            requestTitle,
-            estimatedAmount,
-            totalAmount,
-            paidAmount,
-            paymentType,
-            items,
-            noOfLabour,
-            priceOfLabour,
-            transportationPrice,
-            contractorForPayment,
-            globalStatus = 0,
-            isFinalized = false,
-        } = req.body;
+    upload.any()(req, res, async (err) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).json({ message: 'Error uploading files', error: err });
+        }
 
-        const {
-            sender,
-            recipient,
-            comments,
-        } = req.body.subRequest;
+        try {
+            // Extract fields for the request
+            const {
+                requestType,
+                project,
+                requestTitle,
+                paymentType,
+                globalStatus = 0,
+                isFinalized = 'false',
+                subRequest,
+            } = req.body;
+            const contractorForPayment = req.body.contractorForPayment ? req.body.contractorForPayment : null;
+            const totalAmount = req.body.totalAmount ? parseFloat(req.body.totalAmount) : null;
+            const items = req.body.items ? JSON.parse(req.body.items) : null;
+            const labour = req.body.labour ? JSON.parse(req.body.labour) : null;
+            const { sender, recipient, comments } = JSON.parse(req.body.subRequest);
 
-
-        const newSubRequest = new SubRequest({
-            sender,
-            recipient,
-            subRequestSentAt: new Date(),
-            comments,
-        });
-
-        await newSubRequest.save();
-
-        const recipientUser = await User.findById(recipient);
-
-        const newRequest = new Request({
-            requestType,
-            project,
-            estimatedAmount: 0,
-            requestTitle,
-            totalAmount: totalAmount !== 0 ? totalAmount : 0,
-            paidAmount: 0,
-            requiredAmount: 0,
-            items,
-            noOfLabour,
-            priceOfLabour,
-            transportationPrice,
-            progress: 25,
-            globalStatus,
-            isFinalized,
-            contractorForPayment,
-            paymentType,
-            initiator: sender,
-            subRequests: [newSubRequest._id],
-        });
-
-        await newRequest.save();
-        const mailOptions = {
-            from: 'noreply@smartlifekwt.com',
-            to: recipientUser?.email,
-            subject: `[NEW REQUEST] There is a new request for you. Request No ${newRequest?.requestID}`,
-            html: `
-                <div style="font-family: Arial, sans-serif;">
-                    <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
-                    <p><span style="color:red; font-weight:bolder">[NEW REQUEST]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
-                    <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> for details.</p>
-                </div>
-            `
-        };
-
-        // Send the email
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.log('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
+            // Configure AWS SDK
+            const s3 = new AWS.S3({
+                accessKeyId: process.env.S3_ACCESS_KEY,
+                secretAccessKey: process.env.S3_SECRET_KEY,
+                endpoint: 'https://eu2.contabostorage.com',
+                s3ForcePathStyle: true,
+                signatureVersion: 'v4',
+                region: process.env.S3_REGION,
+            });
+            let attachmentUrl = null;
+            if (req.files && req.files.length > 0) {
+                const attachmentFile = req.files.find((file) => file.fieldname === 'attachment');
+                if (attachmentFile) {
+                    const uniqueFileName = `${Date.now()}-${attachmentFile.originalname}`;
+                    const params = {
+                        Bucket: 'jiroun-attachments',
+                        Key: uniqueFileName,
+                        Body: attachmentFile.buffer,
+                        ContentType: attachmentFile.mimetype,
+                    };
+                    const uploadResult = await s3.upload(params).promise();
+                    attachmentUrl = `https://eu2.contabostorage.com/bf9015fef5844f13b5fea56e1d2f52f3:jiroun-attachments/${uploadResult.Key}`;
+                }
             }
-        });
-        res.status(201).json(newRequest);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: 'Error creating request and subrequest', error });
-    }
-};
+            let updatedLabour = null
+            if (labour) {
+                updatedLabour = await Promise.all(
+                    labour.map(async (item, index) => {
+                        const attachments = req.files.filter((file) => file.fieldname === `attachments_${index}`);
+                        console.log(attachments);
+                        const attachmentUrls = await Promise.all(
+                            attachments.map(async (file) => {
+                                const uniqueFileName = `${Date.now()}-${file.originalname}`;
+                                const params = {
+                                    Bucket: 'jiroun-attachments',
+                                    Key: uniqueFileName,
+                                    Body: file.buffer,
+                                    ContentType: file.mimetype,
+                                };
+                                const uploadResult = await s3.upload(params).promise();
+                                return `https://eu2.contabostorage.com/bf9015fef5844f13b5fea56e1d2f52f3:jiroun-attachments/${uploadResult.Key}`;
+                            })
+                        );
+                        return { ...item, labourAttachments: attachmentUrls.join(',') }; // Update the field name here
+                    })
+                );
+            }
 
+            // Create a new SubRequest
+            const newSubRequest = new SubRequest({
+                sender,
+                recipient,
+                subRequestSentAt: new Date(),
+                comments,
+            });
+            await newSubRequest.save();
+
+            // Find the recipient user
+            const recipientUser = await User.findById(recipient);
+
+            // Calculate total values
+            const noOfLabour = updatedLabour && Array.isArray(updatedLabour)
+                ? updatedLabour.reduce((total, item) => total + parseInt(item.numberOfSpecializedLabour), 0)
+                : 0;
+            const priceOfLabour = updatedLabour && Array.isArray(updatedLabour)
+                ? updatedLabour.reduce((total, item) => total + parseFloat(item.totalPriceOfLabour), 0)
+                : 0;
+            const transportationPrice = updatedLabour && Array.isArray(updatedLabour)
+                ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitTransportationPrice), 0)
+                : 0;
+
+            // Create a new Request
+            const newRequest = new Request({
+                requestType,
+                project,
+                estimatedAmount: 0,
+                requestTitle,
+                totalAmount: !isNaN(totalAmount) ? totalAmount : 0,
+                paidAmount: 0,
+                requiredAmount: 0,
+                items: items !== null ? items : [],
+                noOfLabour: !isNaN(noOfLabour) ? noOfLabour : 0,
+                priceOfLabour: !isNaN(priceOfLabour) ? priceOfLabour : 0,
+                transportationPrice: !isNaN(transportationPrice) ? transportationPrice : 0,
+                progress: 25,
+                globalStatus,
+                isFinalized,
+                contractorForPayment: !isNaN(contractorForPayment) ? contractorForPayment : null,
+                paymentType,
+                initiator: sender,
+                subRequests: [newSubRequest._id],
+                attachment: attachmentUrl,
+
+                labour: updatedLabour !== null && updatedLabour !== undefined ? updatedLabour : [],
+            });
+            await newRequest.save();
+
+            const mailOptions = {
+                from: 'noreply@smartlifekwt.com',
+                to: recipientUser?.email,
+                subject: `[NEW REQUEST] There is a new request for you. Request No ${newRequest?.requestID}`,
+                html: `
+            <div style="font-family: Arial, sans-serif;">
+              <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
+              <p><span style="color:red; font-weight:bolder">[NEW REQUEST]:</span>An action required from your side to complete the request process. Request No ${newRequest?.requestID}</strong>.</p>
+              <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> for details.</p>
+            </div>
+          `,
+            };
+
+            // Send the email
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.log('Error sending email:', error);
+                } else {
+                    console.log('Email sent:', info.response);
+                }
+            });
+
+            res.status(201).json(newRequest);
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ message: 'Error creating request and subrequest', error });
+        }
+    });
+};
 exports.editRequestItems = async (req, res) => {
     try {
         const requestId = req.params.requestId;
@@ -581,6 +655,7 @@ exports.getRequestBySender = async (req, res) => {
                             isFinalized: subRequest.isFinalized,
                             projectName: request.project.projectName,
                             subRequestSentAt: subRequest.subRequestSentAt,
+                            attachment: request.attachment,
                             requestType: request.requestType,
                             requestTitle: request.requestTitle,
                             recipient: {
@@ -600,6 +675,8 @@ exports.getRequestBySender = async (req, res) => {
                             isFinalized: subRequest.isFinalized,
                             projectName: request.project.projectName,
                             subRequestSentAt: subRequest.subRequestSentAt,
+                            attachment: request.attachment,
+
                             requestTitle: request.requestTitle,
                             requestType: request.requestType,
                             recipient: {
@@ -658,6 +735,7 @@ exports.getRequestByReceiver = async (req, res) => {
                         isFinalized: subRequest.isFinalized,
                         subRequestSentAt: subRequest.subRequestSentAt,
                         requestTitle: request.requestTitle,
+                        attachment: request.attachment,
                         projectName: request.project.projectName,
                         requestType: request.requestType,
                         contractorForPayment: request.contractorForPayment,
@@ -670,7 +748,7 @@ exports.getRequestByReceiver = async (req, res) => {
             });
         });
         extractedData.sort((a, b) => b.requestID - a.requestID);
-
+        console.log(extractedData);
         const count = extractedData.length;
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
     } catch (error) {

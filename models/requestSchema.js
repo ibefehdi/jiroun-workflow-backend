@@ -46,8 +46,16 @@ const requestSchema = new mongoose.Schema({
     noOfLabour: { type: Number },
     priceOfLabour: { type: Number },
     transportationPrice: { type: Number },
-
-
+    labour: [{
+        typeOfLabour: { type: String },
+        numberOfSpecializedLabour: { type: String },
+        unitPriceOfLabour: { type: String },
+        totalPriceOfLabour: { type: String },
+        unitTransportationPrice: { type: String },
+        labourComments: { type: String },
+        labourAttachments: { type: String },
+    }],
+    attachment: { type: String }
 }, { timestamps: true })
 
 
