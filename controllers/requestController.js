@@ -87,7 +87,6 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).exec();
-        console.log("Requests:", requests.length);
         const deletedRequests = await DeletedRequest.find(queryConditions)
             .populate('project').populate('initiator').populate('contractorForPayment')
             .populate({
@@ -97,7 +96,6 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).exec();
-        console.log("Deleted Requests:", deletedRequests.length);
         const completedRequests = await CompletedRequest.find(queryConditions)
             .populate('project').populate('initiator').populate('contractorForPayment')
             .populate({
@@ -107,7 +105,6 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).exec();
-        console.log("Completed Requests:", completedRequests.length)
         const unpaidRequests = await UnpaidRequest.find(queryConditions)
             .populate('project').populate('initiator').populate('contractorForPayment')
             .populate({
@@ -117,7 +114,6 @@ exports.getAllRequests = async (req, res) => {
                     model: 'User',
                 },
             }).exec();
-        console.log("Unpaid Requests:", unpaidRequests.length)
         const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
 
         const countRequests = await Request.count(queryConditions);
@@ -370,6 +366,7 @@ exports.createRequest = async (req, res) => {
             console.log(err);
             return res.status(500).json({ message: 'Error uploading files', error: err });
         }
+        const { ObjectId } = mongoose.Types;
 
         try {
             // Extract fields for the request
@@ -378,16 +375,26 @@ exports.createRequest = async (req, res) => {
                 project,
                 requestTitle,
                 paymentType,
+                mobile,
                 globalStatus = 0,
                 isFinalized = 'false',
                 subRequest,
             } = req.body;
-            const contractorForPayment = req.body.contractorForPayment ? req.body.contractorForPayment : null;
+            console.log("the req body: ", req.body)
+            const projectId = typeof project === 'string' ? new ObjectId(project.replace(/"/g, '')) : project;
+            let contractorForPayment
+            if (req.body.contractorForPayment) {
+                contractorForPayment = req.body.contractorForPayment
+
+            }
+            console.log(contractorForPayment)
             const totalAmount = req.body.totalAmount ? parseFloat(req.body.totalAmount) : null;
             const items = req.body.items ? JSON.parse(req.body.items) : null;
             const labour = req.body.labour ? JSON.parse(req.body.labour) : null;
-            const { sender, recipient, comments } = JSON.parse(req.body.subRequest);
-
+            console.log("labour before parse", req.body.labour)
+            console.log("Labour after parse: ", labour);
+            const { sender, recipient, comments } = JSON.parse(subRequest);
+            console.log(sender, recipient, comments);
             // Configure AWS SDK
             const s3 = new AWS.S3({
                 accessKeyId: process.env.S3_ACCESS_KEY,
@@ -400,6 +407,7 @@ exports.createRequest = async (req, res) => {
             let attachmentUrl = null;
             if (req.files && req.files.length > 0) {
                 const attachmentFile = req.files.find((file) => file.fieldname === 'attachment');
+                console.log(attachmentFile)
                 if (attachmentFile) {
                     const uniqueFileName = `${Date.now()}-${attachmentFile.originalname}`;
                     const params = {
@@ -412,8 +420,11 @@ exports.createRequest = async (req, res) => {
                     attachmentUrl = `https://eu2.contabostorage.com/bf9015fef5844f13b5fea56e1d2f52f3:jiroun-attachments/${uploadResult.Key}`;
                 }
             }
-            let updatedLabour = null
-            if (labour) {
+            let updatedLabour = null;
+            console.log("is it array? ", Array.isArray(labour))
+            if (labour && Array.isArray(labour)) {
+                console.log("Inside the if block");
+
                 updatedLabour = await Promise.all(
                     labour.map(async (item, index) => {
                         const attachments = req.files.filter((file) => file.fieldname === `attachments_${index}`);
@@ -431,7 +442,7 @@ exports.createRequest = async (req, res) => {
                                 return `https://eu2.contabostorage.com/bf9015fef5844f13b5fea56e1d2f52f3:jiroun-attachments/${uploadResult.Key}`;
                             })
                         );
-                        return { ...item, labourAttachments: attachmentUrls.join(',') }; // Update the field name here
+                        return { ...item, labourAttachments: attachmentUrls.join(',') };
                     })
                 );
             }
@@ -458,11 +469,11 @@ exports.createRequest = async (req, res) => {
             const transportationPrice = updatedLabour && Array.isArray(updatedLabour)
                 ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitTransportationPrice), 0)
                 : 0;
-
+            console.log("Updated Labour: ", updatedLabour)
             // Create a new Request
             const newRequest = new Request({
                 requestType,
-                project,
+                project: projectId,
                 estimatedAmount: 0,
                 requestTitle,
                 totalAmount: !isNaN(totalAmount) ? totalAmount : 0,
@@ -475,8 +486,13 @@ exports.createRequest = async (req, res) => {
                 progress: 25,
                 globalStatus,
                 isFinalized,
-                contractorForPayment: !isNaN(contractorForPayment) ? contractorForPayment : null,
-                paymentType,
+                contractorForPayment: mobile
+                    ? !isNaN(contractorForPayment) && contractorForPayment !== "null"
+                        ? contractorForPayment
+                        : null
+                    : contractorForPayment !== "null"
+                        ? contractorForPayment
+                        : null,
                 initiator: sender,
                 subRequests: [newSubRequest._id],
                 attachment: attachmentUrl,
@@ -526,6 +542,7 @@ exports.editRequestItems = async (req, res) => {
 
         // Extract the items and amounts from the request body
         const { estimatedAmount, totalAmount, paidAmount, requiredAmount, noOfLabour, priceOfLabour, transportationPrice } = req.body;
+        console.log("This is the req.body", req.body)
         // Iterate through the updated items and match them with the existing items in the request
         // updatedItems?.forEach(updatedItem => {
         //     const existingItem = request.items.find(item => item.boqId === updatedItem.boqId);
@@ -748,7 +765,6 @@ exports.getRequestByReceiver = async (req, res) => {
             });
         });
         extractedData.sort((a, b) => b.requestID - a.requestID);
-        console.log(extractedData);
         const count = extractedData.length;
         res.status(200).json({ data: extractedData, count: count, metadata: { total: count } });
     } catch (error) {
@@ -1092,7 +1108,6 @@ exports.getSendersFromSubRequests = async (req, res) => {
         const subRequests = await SubRequest.find({ '_id': { $in: request.subRequests } }).distinct('sender');
 
         const uniqueSenderIds = [...new Set(subRequests)];
-        console.log(request.subRequests);
         // Fetch first match for each sender ID
         const senders = await User.aggregate([
             { $match: { '_id': { $in: uniqueSenderIds } } },
