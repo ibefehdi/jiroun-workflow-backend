@@ -388,7 +388,6 @@ exports.createRequest = async (req, res) => {
 
             }
             console.log(contractorForPayment)
-            const totalAmount = req.body.totalAmount ? parseFloat(req.body.totalAmount) : null;
             const items = req.body.items ? JSON.parse(req.body.items) : null;
             const labour = req.body.labour ? JSON.parse(req.body.labour) : null;
             console.log("labour before parse", req.body.labour)
@@ -458,18 +457,28 @@ exports.createRequest = async (req, res) => {
 
             // Find the recipient user
             const recipientUser = await User.findById(recipient);
-
-            // Calculate total values
             const noOfLabour = updatedLabour && Array.isArray(updatedLabour)
                 ? updatedLabour.reduce((total, item) => total + parseInt(item.numberOfSpecializedLabour), 0)
                 : 0;
+
             const priceOfLabour = updatedLabour && Array.isArray(updatedLabour)
-                ? updatedLabour.reduce((total, item) => total + parseFloat(item.totalPriceOfLabour), 0)
+                ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitPriceOfLabour), 0)
                 : 0;
+
             const transportationPrice = updatedLabour && Array.isArray(updatedLabour)
                 ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitTransportationPrice), 0)
                 : 0;
-            console.log("Updated Labour: ", updatedLabour)
+            // Calculate total values
+            const totalAmount = updatedLabour && Array.isArray(updatedLabour)
+                ? updatedLabour.reduce((total, item) => {
+                    const itemTotal = (parseInt(item.numberOfSpecializedLabour) * parseFloat(item.unitPriceOfLabour)) + parseFloat(item.unitTransportationPrice);
+                    return total + itemTotal;
+                }, 0)
+                : 0;
+            console.log(`Number of Labour: ${noOfLabour}`);
+            console.log(`Price of Labour: ${priceOfLabour}`);
+            console.log(`Transportation Price: ${transportationPrice}`);
+            console.log(`Total Amount: ${totalAmount}`);
             // Create a new Request
             const newRequest = new Request({
                 requestType,
@@ -599,6 +608,7 @@ exports.editContractorinRequest = async (req, res) => {
 exports.getRequestBySender = async (req, res) => {
     try {
         const userId = req.params.userId;
+        console.log(userId)
         const page = parseInt(req.query.page, 10) || 1;
         const resultsPerPage = parseInt(req.query.resultsPerPage, 10) || 10;
         const skip = (page - 1) * resultsPerPage;
@@ -616,6 +626,7 @@ exports.getRequestBySender = async (req, res) => {
             .populate('contractorForPayment')
             .populate('initiator')
             .exec();
+        // console.log(requests)
         const completedRequests = await CompletedRequest.find({})
             .populate({
                 path: 'subRequests',
@@ -630,6 +641,8 @@ exports.getRequestBySender = async (req, res) => {
             .populate('contractorForPayment')
             .populate('initiator')
             .exec();
+        // console.log(completedRequests)
+
         const deletedRequests = await DeletedRequest.find({})
             .populate({
                 path: 'subRequests',
@@ -644,6 +657,7 @@ exports.getRequestBySender = async (req, res) => {
             .populate('contractorForPayment')
             .populate('initiator')
             .exec();
+        // console.log(deletedRequests)
         const unpaidRequests = await UnpaidRequest.find({})
             .populate({
                 path: 'subRequests',
@@ -658,49 +672,51 @@ exports.getRequestBySender = async (req, res) => {
             .populate('contractorForPayment')
             .populate('initiator')
             .exec();
+        // console.log(unpaidRequests)
         const requestsMap = {};
         const combinedRequests = [...requests, ...deletedRequests, ...completedRequests, ...unpaidRequests];
-
+        // console.log(combinedRequests)
         combinedRequests.forEach(request => {
             request.subRequests.forEach(subRequest => {
                 if (subRequest.sender._id.toString() === userId) {
                     // If this requestID is already in the map and the current subRequest is newer, update the entry
                     if (requestsMap[request.requestID] && requestsMap[request.requestID].subRequestSentAt < subRequest.subRequestSentAt) {
+                        console.log("first")
                         requestsMap[request.requestID] = {
                             _id: request._id,
                             requestID: request.requestID,
-                            isFinalized: subRequest.isFinalized,
-                            projectName: request.project.projectName,
+                            isFinalized: subRequest.isFinalized !== undefined ? subRequest.isFinalized : 'N/A',
+                            projectName: request.project && request.project.projectName ? request.project.projectName : 'N/A',
                             subRequestSentAt: subRequest.subRequestSentAt,
-                            attachment: request.attachment,
-                            requestType: request.requestType,
-                            requestTitle: request.requestTitle,
+                            attachment: request.attachment !== undefined ? request.attachment : 'N/A',
+                            requestType: request.requestType !== undefined ? request.requestType : 'N/A',
+                            requestTitle: request.requestTitle !== undefined ? request.requestTitle : 'N/A',
                             recipient: {
-                                fName: subRequest.recipient.fName,
-                                lName: subRequest.recipient.lName
+                                fName: subRequest.recipient && subRequest.recipient.fName ? subRequest.recipient.fName : 'N/A',
+                                lName: subRequest.recipient && subRequest.recipient.lName ? subRequest.recipient.lName : 'N/A'
                             },
-                            contractorForPayment: request.contractorForPayment,
+                            contractorForPayment: request.contractorForPayment !== undefined ? request.contractorForPayment : 'N/A'
 
 
                         };
                     }
 
                     else if (!requestsMap[request.requestID]) {
+                        console.log
                         requestsMap[request.requestID] = {
                             _id: request._id,
                             requestID: request.requestID,
-                            isFinalized: subRequest.isFinalized,
-                            projectName: request.project.projectName,
+                            isFinalized: subRequest.isFinalized !== undefined ? subRequest.isFinalized : 'N/A',
+                            projectName: request.project && request.project.projectName ? request.project.projectName : 'N/A',
                             subRequestSentAt: subRequest.subRequestSentAt,
-                            attachment: request.attachment,
-
-                            requestTitle: request.requestTitle,
-                            requestType: request.requestType,
+                            attachment: request.attachment !== undefined ? request.attachment : 'N/A',
+                            requestType: request.requestType !== undefined ? request.requestType : 'N/A',
+                            requestTitle: request.requestTitle !== undefined ? request.requestTitle : 'N/A',
                             recipient: {
-                                fName: subRequest.recipient.fName,
-                                lName: subRequest.recipient.lName
+                                fName: subRequest.recipient && subRequest.recipient.fName ? subRequest.recipient.fName : 'N/A',
+                                lName: subRequest.recipient && subRequest.recipient.lName ? subRequest.recipient.lName : 'N/A'
                             },
-                            contractorForPayment: request.contractorForPayment,
+                            contractorForPayment: request.contractorForPayment !== undefined ? request.contractorForPayment : 'N/A'
 
                         };
                     }
@@ -710,6 +726,7 @@ exports.getRequestBySender = async (req, res) => {
 
         // Convert the requestsMap object values to an array
         const extractedData = Object.values(requestsMap);
+        // console.log(extractedData);
         extractedData.sort((a, b) => b.requestID - a.requestID);
 
         const count = extractedData.length;
