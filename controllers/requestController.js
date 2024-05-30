@@ -393,7 +393,7 @@ exports.createRequest = async (req, res) => {
             console.log("labour before parse", req.body.labour)
             console.log("Labour after parse: ", labour);
             const { sender, recipient, comments } = JSON.parse(subRequest);
-            console.log(sender, recipient, comments);
+            console.log(sender, recipient, comments); 
             // Configure AWS SDK
             const s3 = new AWS.S3({
                 accessKeyId: process.env.S3_ACCESS_KEY,

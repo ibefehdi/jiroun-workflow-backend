@@ -19,7 +19,12 @@ const projectSchema = new mongoose.Schema({
     projectDirector: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-    }
+    },
+    latitude: Number,
+    longitude: Number,
+    radius: Number,
+    // shiftStart: String, 
+    // shiftEnd: String, 
 })
 
 module.exports = mongoose.model('Project', projectSchema);
