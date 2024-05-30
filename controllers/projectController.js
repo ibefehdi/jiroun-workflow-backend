@@ -62,7 +62,10 @@ exports.createProject = async (req, res) => {
         contractors: req.body.contractors,
         projectManager: req.body.projectManager,
         projectDirector: req.body.projectDirector,
-        foremen: req.body.foremen
+        foremen: req.body.foremen,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
+        radius: req.body.radius
     });
 
     try {
