@@ -143,7 +143,7 @@ exports.checkUserSite = async (req, res) => {
     try {
         // Extract latitude, longitude, and userId from request payload
         const { latitude, longitude } = req.body;
-
+        console.log(latitude, longitude);
         // Find all projects
         const projects = await Project.find();
 
@@ -151,9 +151,10 @@ exports.checkUserSite = async (req, res) => {
         const projectFound = projects.find(project => {
             const { latitude: siteLat, longitude: siteLong, radius } = project;
             const distance = calculateDistance(latitude, longitude, siteLat, siteLong);
+            console.log(distance);
             return distance <= radius;
         });
-
+        console.log(projectFound)
         if (!projectFound) {
             return res.status(200).json({
                 siteName: "",

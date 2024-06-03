@@ -393,12 +393,12 @@ exports.createRequest = async (req, res) => {
             console.log("labour before parse", req.body.labour)
             console.log("Labour after parse: ", labour);
             const { sender, recipient, comments } = JSON.parse(subRequest);
-            console.log(sender, recipient, comments); 
+            console.log(sender, recipient, comments);
             // Configure AWS SDK
             const s3 = new AWS.S3({
                 accessKeyId: process.env.S3_ACCESS_KEY,
                 secretAccessKey: process.env.S3_SECRET_KEY,
-                endpoint: 'https://eu2.contabostorage.com',
+                endpoint: 'https://usc1.contabostorage.com',
                 s3ForcePathStyle: true,
                 signatureVersion: 'v4',
                 region: process.env.S3_REGION,
@@ -416,7 +416,7 @@ exports.createRequest = async (req, res) => {
                         ContentType: attachmentFile.mimetype,
                     };
                     const uploadResult = await s3.upload(params).promise();
-                    attachmentUrl = `https://eu2.contabostorage.com/bf9015fef5844f13b5fea56e1d2f52f3:jiroun-attachments/${uploadResult.Key}`;
+                    attachmentUrl = `https://usc1.contabostorage.com/410b07e5584e4d59abd535a08d7a69e6:jiroun-attachments/${uploadResult.Key}`;
                 }
             }
             let updatedLabour = null;
@@ -438,7 +438,7 @@ exports.createRequest = async (req, res) => {
                                     ContentType: file.mimetype,
                                 };
                                 const uploadResult = await s3.upload(params).promise();
-                                return `https://eu2.contabostorage.com/bf9015fef5844f13b5fea56e1d2f52f3:jiroun-attachments/${uploadResult.Key}`;
+                                return `https://usc1.contabostorage.com/410b07e5584e4d59abd535a08d7a69e6:jiroun-attachments/${uploadResult.Key}`;
                             })
                         );
                         return { ...item, labourAttachments: attachmentUrls.join(',') };

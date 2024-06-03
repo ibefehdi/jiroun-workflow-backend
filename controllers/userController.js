@@ -180,7 +180,6 @@ exports.addUser = async (req, res, next) => {
 };
 exports.loginUser = async (req, res, next) => {
     passport.authenticate("local", async function (err, user, info) {
-        console.log(user);
         if (err) {
             return next(err);
         }
@@ -191,17 +190,43 @@ exports.loginUser = async (req, res, next) => {
             if (err) {
                 return next(err);
             }
-            console.log({
-                message: "Authenticated successfully.",
-                username: user.username,
-                fName: user.fName,
-                lName: user.lName,
-                occupation: user.occupation,
-                superAdmin: user.superAdmin,
-                hasChangedPassword: user.hasChangedPassword,
-                permissions: user.permissions,
-                _id: user._id
-            });
+
+            const deviceId = req.body.deviceId;
+            const isMobile = req.body.mobile;
+            const modelName = req.body.modelName;
+            const manufacturer = req.body.manufacturer;
+            const osFingerprint = req.body.osFingerprint;
+            console.log(deviceId, modelName);
+            console.log(user);
+
+            if (isMobile) {
+                // Check if the deviceId already exists
+                const existingUser = await User.findOne({ username: user.username });
+                console.log(existingUser);
+
+                if (existingUser) {
+                    // If the deviceId exists but does not match the one in the request body
+                    if (existingUser.deviceId && existingUser.deviceId !== deviceId) {
+                        return res.status(401).json({ error: "Device is not authorized." });
+                    }
+                }
+
+                // If deviceId is not set for the user, update it and deviceDetails
+                if (!user.deviceId) {
+                    user.deviceId = deviceId;
+                    user.deviceDetails = {
+                        modelName: modelName,
+                        manufacturer: manufacturer,
+                        osFingerprint: osFingerprint
+                    };
+                    try {
+                        await user.save();
+                    } catch (updateErr) {
+                        return next(updateErr);
+                    }
+                }
+            }
+
             return res.status(200).json({
                 message: "Authenticated successfully.",
                 username: user.username,
@@ -211,11 +236,48 @@ exports.loginUser = async (req, res, next) => {
                 superAdmin: user.superAdmin,
                 hasChangedPassword: user.hasChangedPassword,
                 permissions: user.permissions,
+                // deviceId: user.deviceId,
+                // deviceDetails: user.deviceDetails,
                 _id: user._id
             });
         });
     })(req, res, next);
-}
+};
+exports.updateUserDeviceInfo = async (req, res) => {
+    const userId = req.params.id;
+    const { deviceId, deviceDetails } = req.body;
+
+    try {
+        // Find the user by id
+        let user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        // Check if the deviceId and deviceDetails already exist
+        if (!user.deviceId && !user.deviceDetails) {
+            // Update the user's deviceId and deviceDetails if they do not exist
+            user.deviceId = deviceId;
+            user.deviceDetails = deviceDetails;
+
+            // Save the updated user
+            await user.save();
+        }
+
+        // Send back the specified fields
+        return res.status(200).json({
+            username: user.username,
+            fName: user.fName,
+            lName: user.lName,
+            occupation: user.occupation,
+            permissions: user.permissions
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "An error occurred while updating the user." });
+    }
+};
+
 exports.getAllUsers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
