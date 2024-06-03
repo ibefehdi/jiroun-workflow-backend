@@ -20,8 +20,8 @@ const { getAllUsers,
     getAllUsersnontable,
     getUserDetails,
     getAlloftheUsersNontable,
-    getProjectManagerAndDirectorUsers, 
-    updateUserDeviceInfo} = require('../controllers/userController');
+    getProjectManagerAndDirectorUsers,
+    updateUserDeviceInfo } = require('../controllers/userController');
 const { getRequestInitiator } = require('../controllers/requestController');
 
 
@@ -31,7 +31,7 @@ router.post('/users/:id/resetPassword', resetPassword)
 // Login a user
 router.post('/users/login', loginUser);
 
-router.put('/users/:id', editUser)
+router.patch('/users/:id', editUser)
 router.get('/userDetail/:id', getUserDetails)
 // Get all users
 router.get('/users', getAllUsers);
@@ -59,6 +59,6 @@ router.get('/users/foremen', getForemenUsers);
 
 router.get('/users/allcontractors', getAllContractorUsers)
 router.get('/users/initiator/:id', getRequestInitiator)
-router.put('/user/:id/device-info', updateUserDeviceInfo);
+router.patch('/user/:id/device-info', updateUserDeviceInfo);
 
 module.exports = router;

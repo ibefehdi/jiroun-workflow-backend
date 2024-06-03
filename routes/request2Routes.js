@@ -27,7 +27,7 @@ router.get('/requests/status/approved', getRequestsByApproved);
 router.get('/requests/status/declined', getRequestsByDeclined);
 
 // Edit a request
-router.put('/requests/:requestId', editRequest);
+router.patch('/requests/:requestId', editRequest);
 
 router.get('/requestsbyId/:requestId', getRequestById)
 

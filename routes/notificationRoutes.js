@@ -4,6 +4,6 @@ const { getAllNotifications, editReadNotifications } = require('../controllers/n
 
 router.get('/notifications/:userId', getAllNotifications);
 
-router.put('/notifications/:id/read', editReadNotifications);
+router.patch('/notifications/:id/read', editReadNotifications);
 
 module.exports = router;

@@ -55,11 +55,11 @@ router.get('/requests/receiver/:userId', getRequestByReceiver)
 router.get('/requestscount/receiver/:userId', getRequestByReceiverCount)
 
 router.get('/requests/receiverCount/:userId', getRequestByReceiverCount)
-router.put('/subrequests/:subrequestId', editSubRequest)
-router.put('/requests/:requestId', editRequest)
-router.put('/requests/contractor/:requestId', editContractorinRequest)
+router.patch('/subrequests/:subrequestId', editSubRequest)
+router.patch('/requests/:requestId', editRequest)
+router.patch('/requests/contractor/:requestId', editContractorinRequest)
 router.get('/checkRecipient/:userId/:requestId', checkRecipient);
-router.put('/editrequests/:requestId', editRequestItems)
+router.patch('/editrequests/:requestId', editRequestItems)
 router.get('/requestscount/', getRequestsCount);
 router.get('/getSenders/:id', getAllSendersInRequest)
 router.post('/deleteRequest/:id', deleteRequest);

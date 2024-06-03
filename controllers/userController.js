@@ -246,7 +246,9 @@ exports.loginUser = async (req, res, next) => {
 exports.updateUserDeviceInfo = async (req, res) => {
     const userId = req.params.id;
     const { deviceId, deviceDetails } = req.body;
-
+    console.log("User ID: " + userId);
+    console.log("Device ID: " + deviceId);
+    console.log("Device Details" + deviceDetails)
     try {
         // Find the user by id
         let user = await User.findById(userId);
@@ -270,7 +272,11 @@ exports.updateUserDeviceInfo = async (req, res) => {
             fName: user.fName,
             lName: user.lName,
             occupation: user.occupation,
-            permissions: user.permissions
+            superAdmin: user.superAdmin,
+            hasChangedPassword: user.hasChangedPassword,
+            permissions: user.permissions,
+            _id: user._id
+
         });
     } catch (err) {
         console.error(err);
