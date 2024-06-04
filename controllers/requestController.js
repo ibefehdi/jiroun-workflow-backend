@@ -947,7 +947,11 @@ exports.checkRecipient = async (req, res) => {
 exports.getRequestsCount = async (req, res) => {
     try {
         const requests = await Request.countDocuments();
-        res.status(200).json({ count: requests })
+        const unpaidRequest = await UnpaidRequest.countDocuments();
+        const completedRequest = await CompletedRequest.countDocuments();
+        const rejectedRequest = await DeletedRequest.countDocuments();
+        const count = Number(requests) + Number(unpaidRequest) + Number(completedRequest) + Number(rejectedRequest)
+        res.status(200).json({ count: count })
     }
     catch (err) {
         res.status(500).json({ message: err.message });
