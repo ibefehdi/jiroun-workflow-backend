@@ -1226,10 +1226,10 @@ exports.getRequestIDsInRange = async (req, res) => {
         const requests = await Request.find({
             createdAt: { $gte: startDate, $lte: endDate },
             requestType: "Request Labour"
-        }).select('RequestID');
+        }).select('_id');
 
         // Extract the request IDs
-        const requestIDs = requests.map(request => request._id);
+        const requestIDs = requests.map(request => request.requestID);
 
         res.status(200).json({ requestIDs: requestIDs });
     } catch (err) {
