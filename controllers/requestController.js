@@ -1227,10 +1227,20 @@ exports.getRequestIDsInRange = async (req, res) => {
             createdAt: { $gte: startDate, $lte: endDate },
             requestType: "Request Labour"
         });
-
+        const completedRequests = await CompletedRequest.find({
+            createdAt: { $gte: startDate, $lte: endDate },
+            requestType: "Request Labour"
+        });
+        const unpaidRequests = await UnpaidRequest.find({
+            createdAt: { $gte: startDate, $lte: endDate },
+            requestType: "Request Labour"
+        });
         // Extract the request IDs
-        const requestIDs = requests.map(request => request.requestID);
-
+        const requestIDs = [
+            ...requests.map(request => request.requestID),
+            ...completedRequests.map(request => request.requestID),
+            ...unpaidRequests.map(request => request.requestID)
+        ];
         res.status(200).json({ requestIDs: requestIDs });
     } catch (err) {
         res.status(500).send(err.message);
