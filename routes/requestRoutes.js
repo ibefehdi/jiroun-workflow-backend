@@ -24,7 +24,8 @@ const {
     getRequestByReceiverCount,
     editContractorinRequest,
     getRequestInitiator,
-    rejectandremove
+    rejectandremove,
+    getRequestIDsInRange
 } = require('../controllers/requestController');
 
 // Get all requests
@@ -53,7 +54,7 @@ router.post('/requests', createRequest);
 router.get('/requests/sender/:userId', getRequestBySender);
 router.get('/requests/receiver/:userId', getRequestByReceiver)
 router.get('/requestscount/receiver/:userId', getRequestByReceiverCount)
-
+router.get('/requestbydate/', getRequestIDsInRange)
 router.get('/requests/receiverCount/:userId', getRequestByReceiverCount)
 router.patch('/subrequests/:subrequestId', editSubRequest)
 router.patch('/requests/:requestId', editRequest)

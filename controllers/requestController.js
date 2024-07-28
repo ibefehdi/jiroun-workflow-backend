@@ -1216,3 +1216,23 @@ exports.getRequestInitiator = async (req, res) => {
         res.status(500).send(err.message);
     }
 }
+exports.getRequestIDsInRange = async (req, res) => {
+    try {
+        // Define the start and end dates
+        const startDate = new Date('2024-06-13');
+        const endDate = new Date('2024-07-25');
+
+        // Query to find requests within the date range
+        const requests = await Request.find({
+            createdAt: { $gte: startDate, $lte: endDate },
+            requestType: "Request Labour"
+        }).select('_id');
+
+        // Extract the request IDs
+        const requestIDs = requests.map(request => request._id);
+
+        res.status(200).json({ requestIDs: requestIDs });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+};
