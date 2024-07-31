@@ -1220,7 +1220,7 @@ exports.getRequestIDsInRange = async (req, res) => {
     try {
         // Define the start and end dates
         const startDate = new Date('2024-06-13');
-        const endDate = new Date('2024-07-25');
+        const endDate = new Date('2024-07-28');
 
         // Query to find requests within the date range
         const requests = await Request.find({
@@ -1228,11 +1228,11 @@ exports.getRequestIDsInRange = async (req, res) => {
             requestType: "Request Labour"
         });
         const completedRequests = await CompletedRequest.find({
-            createdAt: { $gte: startDate, $lte: endDate },
+            requestFinalizedAt: { $gte: startDate, $lte: endDate },
             requestType: "Request Labour"
         });
         const unpaidRequests = await UnpaidRequest.find({
-            createdAt: { $gte: startDate, $lte: endDate },
+            requestFinalApprovalAt: { $gte: startDate, $lte: endDate },
             requestType: "Request Labour"
         });
         // Extract the request IDs
@@ -1241,6 +1241,11 @@ exports.getRequestIDsInRange = async (req, res) => {
             ...completedRequests.map(request => request.requestID),
             ...unpaidRequests.map(request => request.requestID)
         ];
+        requestIDs.sort((a, b) => {
+            if (a < b) return -1;
+            if (a > b) return 1;
+            return 0;
+        });
         res.status(200).json({ requestIDs: requestIDs });
     } catch (err) {
         res.status(500).send(err.message);

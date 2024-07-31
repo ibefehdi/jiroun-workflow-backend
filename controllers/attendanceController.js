@@ -114,102 +114,190 @@ exports.getAllAttendanceByDay = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        const date = req.query.date; // Get the date from query params
+        const date = req.query.date;
+        const userId = req.query.userId;  // New: Optional userId filter
+
+        console.log('Query parameters:', { page, limit, date, userId });
 
         if (!date) {
             return res.status(400).json({ error: 'Date parameter is required' });
         }
 
-        // Create Date objects for the start and end of the specified day
         const startDate = new Date(date);
-        startDate.setHours(0, 0, 0, 0);
+        startDate.setUTCHours(0, 0, 0, 0);
         const endDate = new Date(date);
-        endDate.setHours(23, 59, 59, 999);
+        endDate.setUTCHours(23, 59, 59, 999);
 
-        const pipeline = [
-            {
-                $match: {
-                    date: { $gte: startDate, $lte: endDate }
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'userId',
-                    foreignField: '_id',
-                    as: 'user'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'sites',
-                    localField: 'siteId',
-                    foreignField: '_id',
-                    as: 'site'
-                }
-            },
-            {
-                $unwind: '$user'
-            },
-            {
-                $unwind: '$site'
-            },
-            {
-                $group: {
-                    _id: "$userId",
-                    fName: { $first: "$user.fName" },
-                    lName: { $first: "$user.lName" },
-                    projectName: { $first: "$site.projectName" },
-                    location: { $first: "$site.location" },
-                    latitude: { $first: "$site.latitude" },
-                    longitude: { $first: "$site.longitude" },
-                    radius: { $first: "$site.radius" },
-                    firstCheckIn: { $min: "$checkIn" },
-                    lastCheckOut: { $max: "$checkOut" }
-                }
-            },
-            {
-                $sort: { "_id": 1 }
-            },
-            {
-                $skip: skip
-            },
-            {
-                $limit: limit
+        console.log('Date range:', { startDate, endDate });
+
+        // Prepare the query object
+        let query = {
+            checkIn: { $gte: startDate, $lte: endDate }
+        };
+
+        // Add userId to the query if provided
+        if (userId) {
+            query.userId = userId;
+        }
+
+        // Find all attendances for the given date (and user if specified)
+        const attendances = await Attendance.find(query)
+            .sort({ userId: 1, checkIn: 1 })
+            .lean();
+
+        console.log('Attendances found:', attendances.length);
+
+        // Group attendances by userId
+        const groupedAttendances = attendances.reduce((acc, attendance) => {
+            const userId = attendance.userId.toString();
+            if (!acc[userId]) {
+                acc[userId] = [];
             }
-        ];
+            acc[userId].push(attendance);
+            return acc;
+        }, {});
 
-        const attendances = await Attendance.aggregate(pipeline);
+        // Get unique userIds and siteIds
+        const userIds = Object.keys(groupedAttendances);
+        const siteIds = [...new Set(attendances.map(a => a.siteId))];
 
-        const countPipeline = [
-            {
-                $match: {
-                    date: { $gte: startDate, $lte: endDate }
+        // Fetch users and sites in bulk
+        const users = await User.find({ _id: { $in: userIds } }).lean();
+        const sites = await Project.find({ _id: { $in: siteIds } }).lean();
+
+        // Create lookup objects for quick access
+        const userMap = new Map(users.map(u => [u._id.toString(), u]));
+        const siteMap = new Map(sites.map(s => [s._id.toString(), s]));
+
+        // Process attendances
+        const processedAttendances = userIds.map(userId => {
+            const userAttendances = groupedAttendances[userId];
+            const user = userMap.get(userId);
+            const site = siteMap.get(userAttendances[0].siteId.toString());
+
+            const firstCheckIn = userAttendances[0].checkIn;
+            const lastCheckOut = userAttendances[userAttendances.length - 1].checkOut;
+
+            // Calculate total working hours
+            let totalWorkingHours = 0;
+            userAttendances.forEach(attendance => {
+                if (attendance.workingHours) {
+                    const [hours, minutes] = attendance.workingHours.split(':').map(Number);
+                    totalWorkingHours += hours + minutes / 60;
                 }
-            },
-            {
-                $group: {
-                    _id: "$userId"
-                }
-            },
-            {
-                $count: "total"
-            }
-        ];
+            });
 
-        const countResult = await Attendance.aggregate(countPipeline);
-        const count = countResult.length > 0 ? countResult[0].total : 0;
+            // Format total working hours
+            const formattedWorkingHours = `${Math.floor(totalWorkingHours)}:${Math.round((totalWorkingHours % 1) * 60).toString().padStart(2, '0')}`;
+
+            return {
+                _id: userId,
+                fName: user?.fName,
+                lName: user?.lName,
+                projectName: site?.projectName,
+                location: site?.location,
+                radius: site?.radius,
+                firstCheckIn,
+                lastCheckOut,
+                totalWorkingHours: formattedWorkingHours
+            };
+        });
+
+        console.log('Processed attendances:', processedAttendances.length);
+        console.log('First processed attendance:', processedAttendances[0]);
+
+        // Apply pagination
+        const paginatedAttendances = processedAttendances.slice(skip, skip + limit);
+
+        // Get total count
+        const totalCount = userIds.length;
+
+        console.log('Total count:', totalCount);
 
         res.status(200).json({
-            data: attendances,
-            count: attendances.length,
+            data: paginatedAttendances,
+            count: paginatedAttendances.length,
             metadata: {
-                total: count,
+                total: totalCount,
                 date: date
             },
         });
     } catch (error) {
-        console.error(error);
+        console.error('Error in getAllAttendanceByDay:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+exports.getUserAttendanceForDay = async (req, res) => {
+    try {
+        const { userId, date } = req.query;
+
+        if (!userId || !date) {
+            return res.status(400).json({ error: 'Both userId and date parameters are required' });
+        }
+
+        const startDate = new Date(date);
+        startDate.setUTCHours(0, 0, 0, 0);
+        const endDate = new Date(date);
+        endDate.setUTCHours(23, 59, 59, 999);
+
+        console.log('Query parameters:', { userId, date });
+        console.log('Date range:', { startDate, endDate });
+
+        // Find all attendances for the given user and date
+        const attendances = await Attendance.find({
+            userId: userId,
+            checkIn: { $gte: startDate, $lte: endDate }
+        })
+            .sort({ checkIn: 1 })
+            .lean();
+
+        console.log('Attendances found:', attendances.length);
+
+        // Fetch user and site information
+        const user = await User.findById(userId).lean();
+        const siteId = attendances.length > 0 ? attendances[0].siteId : null;
+        const site = siteId ? await Project.findById(siteId).lean() : null;
+
+        // Calculate total working hours
+        let totalWorkingMinutes = 0;
+
+        const processedAttendances = attendances.map(attendance => {
+            let workingHours = '00:00';
+            if (attendance.checkIn && attendance.checkOut) {
+                const duration = (attendance.checkOut - attendance.checkIn) / (1000 * 60); // in minutes
+                totalWorkingMinutes += duration;
+                const hours = Math.floor(duration / 60);
+                const minutes = Math.round(duration % 60);
+                workingHours = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            }
+
+            return {
+                _id: attendance._id,
+                checkIn: attendance.checkIn,
+                checkOut: attendance.checkOut,
+                workingHours: workingHours
+            };
+        });
+
+        const totalHours = Math.floor(totalWorkingMinutes / 60);
+        const totalMinutes = Math.round(totalWorkingMinutes % 60);
+        const totalWorkingHours = `${totalHours.toString().padStart(2, '0')}:${totalMinutes.toString().padStart(2, '0')}`;
+
+        const response = {
+            userId: userId,
+            fName: user?.fName,
+            lName: user?.lName,
+            projectName: site?.projectName,
+            location: site?.location,
+            radius: site?.radius,
+            date: date,
+            totalWorkingHours: totalWorkingHours,
+            attendances: processedAttendances
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Error in getUserAttendanceForDay:', error);
         res.status(500).json({ error: 'Server error' });
     }
 };
