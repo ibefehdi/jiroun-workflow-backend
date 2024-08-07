@@ -301,6 +301,88 @@ exports.getUserAttendanceForDay = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+exports.getUserAttendanceForMonth = async (req, res) => {
+    try {
+        const { userId, year, month } = req.query;
+
+        if (!userId || !year || !month) {
+            return res.status(400).json({ error: 'userId, year, and month parameters are required' });
+        }
+
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+        console.log('Query parameters:', { userId, year, month });
+        console.log('Date range:', { startDate, endDate });
+
+        // Find all attendances for the given user and month
+        const attendances = await Attendance.find({
+            userId: userId,
+            checkIn: { $gte: startDate, $lte: endDate }
+        })
+            .sort({ checkIn: 1 })
+            .lean();
+
+        console.log('Attendances found:', attendances.length);
+
+        // Fetch user and site information
+        const user = await User.findById(userId).lean();
+
+        // Calculate total working hours and group by day
+        let totalWorkingMinutes = 0;
+        const attendanceByDay = {};
+
+        attendances.forEach(attendance => {
+            const day = new Date(attendance.checkIn).toISOString().split('T')[0];
+            if (!attendanceByDay[day]) {
+                attendanceByDay[day] = {
+                    date: day,
+                    checkIns: [],
+                    checkOuts: [],
+                    totalWorkingMinutes: 0
+                };
+            }
+
+            attendanceByDay[day].checkIns.push(attendance.checkIn);
+            if (attendance.checkOut) {
+                attendanceByDay[day].checkOuts.push(attendance.checkOut);
+                const duration = (attendance.checkOut - attendance.checkIn) / (1000 * 60);
+                attendanceByDay[day].totalWorkingMinutes += duration;
+                totalWorkingMinutes += duration;
+            }
+        });
+
+        const processedAttendances = Object.values(attendanceByDay).map(day => {
+            const hours = Math.floor(day.totalWorkingMinutes / 60);
+            const minutes = Math.round(day.totalWorkingMinutes % 60);
+            return {
+                date: day.date,
+                firstCheckIn: day.checkIns[0],
+                lastCheckOut: day.checkOuts[day.checkOuts.length - 1],
+                workingHours: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+            };
+        });
+
+        const totalHours = Math.floor(totalWorkingMinutes / 60);
+        const totalMinutes = Math.round(totalWorkingMinutes % 60);
+        const totalWorkingHours = `${totalHours.toString().padStart(2, '0')}:${totalMinutes.toString().padStart(2, '0')}`;
+
+        const response = {
+            userId: userId,
+            fName: user?.fName,
+            lName: user?.lName,
+            year: year,
+            month: month,
+            totalWorkingHours: totalWorkingHours,
+            attendances: processedAttendances
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Error in getUserAttendanceForMonth:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
 exports.getMonthlyAttendanceReport = async (req, res) => {
     try {
         const { year, month } = req.query;
