@@ -151,3 +151,122 @@ exports.completeUnpaidItemRequests = async (req, res) => {
     }
 }
 
+exports.completeUnpaidItemRequests = async (req, res) => {
+    try {
+        // Fetch all UnpaidRequest with requestType "Request Item"
+        const unpaidRequests = await UnpaidRequest.find({ requestType: "Request Item" });
+
+        if (!unpaidRequests.length) {
+            return res.status(404).send('No Unpaid Item Requests found');
+        }
+
+        // Date when requests are finalized
+        const requestFinalizedAt = new Date();
+
+        // Define the completion details
+        const progress = 100;
+        const comments = "Done on behalf of Mr. Maher";
+        const referenceNumber = "No Reference Number"
+        // Process each unpaid request
+        const results = unpaidRequests.map(async (unpaidRequest) => {
+            const completedRequest = new CompletedRequest({
+                ...unpaidRequest.toObject(),
+                comments,
+                progress,
+                referenceNumber,
+                requestFinalizedAt,
+            });
+            await completedRequest.save();
+
+            // Delete the unpaid request from the database
+            await UnpaidRequest.findByIdAndDelete(unpaidRequest._id);
+            return completedRequest;
+        });
+
+        // Wait for all promises to resolve
+        await Promise.all(results);
+
+        // Send success response
+        res.status(200).send(`${results.length} Item Requests Completed and Deleted Successfully`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+}
+exports.completeRequestsLazy = async (req, res) => {
+    try {
+        const { userId, comment } = req.body;
+        if (!userId || !comment) {
+            return res.status(400).send('User ID and comment are required');
+        }
+
+        // Fetch requests for the specific user
+        const requests = await Request.find({})
+            .populate({
+                path: 'subRequests',
+                model: SubRequest,
+                match: { recipient: userId, isFinalized: 0 },
+                populate: {
+                    path: 'sender',
+                    select: 'fName lName'
+                }
+            })
+            .populate('project')
+            .populate('contractorForPayment')
+            .populate('initiator')
+            .exec();
+
+        const requestsToComplete = [];
+        requests.forEach(request => {
+            request.subRequests.forEach(subRequest => {
+                if (subRequest.recipient.toString() === userId) {
+                    requestsToComplete.push({
+                        requestId: request._id,
+                        subRequestId: subRequest._id,
+                        requestTitle: request.requestTitle,
+                        requestType: request.requestType,
+                        project: request.project._id
+                    });
+                }
+            });
+        });
+        console.log(requestsToComplete)
+        if (!requestsToComplete.length) {
+            return res.status(404).send('No requests found for the specified user');
+        }
+
+        // Date when requests are finalized
+        const requestFinalizedAt = new Date();
+
+        // Define the completion details
+        const progress = 100;
+        const referenceNumber = "No Reference Number";
+
+        // Process each request
+        const results = await Promise.all(requestsToComplete.map(async (req) => {
+            const completedRequest = new CompletedRequest({
+                project: req.project,
+                requestId: req.requestId,
+                subRequestId: req.subRequestId,
+                requestTitle: req.requestTitle,
+                requestType: req.requestType,
+                comments: comment,
+                progress,
+                referenceNumber,
+                requestFinalizedAt
+            });
+            await completedRequest.save();
+
+            // Update the subRequest to mark it as finalized
+            await SubRequest.findByIdAndUpdate(req.subRequestId, { isFinalized: 1 });
+
+            return completedRequest;
+        }));
+
+        // Send success response
+        res.status(200).send(`${results.length} Requests Completed Successfully for User ID: ${userId}`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err.message);
+    }
+};
