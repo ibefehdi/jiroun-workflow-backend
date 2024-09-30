@@ -294,61 +294,46 @@ exports.getDeclinedRequests = async (req, res) => {
         res.status(500).json({ message: 'Error fetching declined requests', error });
     }
 };
-
-
 exports.createSubRequest = async (req, res) => {
     try {
         const requestId = req.params.requestId;
 
-        const request = await Request.findOne({ _id: requestId }).populate('workflow');
+        const request = await Request.findOne({ _id: requestId });
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        const { sender, isFinalized, comments } = req.body;
+        const { sender, recipient, isFinalized, comments } = req.body;
 
-        // Get the next step in the workflow
-        const nextStep = request.workflow.steps.find(step => step.stepNumber === request.currentStep + 1);
-        if (!nextStep) {
-            return res.status(400).json({ message: 'Workflow is complete' });
-        }
-
-        // Find a user with the role specified in the next step
-        const recipient = await User.findOne({ occupation: nextStep.role });
-        if (!recipient) {
-            return res.status(400).json({ message: 'No user found for the next step of the workflow' });
-        }
-
-        const newSubRequest = new SubRequest({
-            sender,
-            recipient: recipient._id,
-            isFinalized,
-            stepNumber: nextStep.stepNumber,
-            actionRequired: nextStep.actionRequired,
-            subRequestSentAt: new Date(),
-            comments
-        });
+        const newSubRequest = new SubRequest({ sender, recipient, isFinalized, subRequestSentAt: new Date(), comments });
         await newSubRequest.save();
 
         request.subRequests.push(newSubRequest._id);
-        request.currentStep = nextStep.stepNumber;
 
-        // Update progress based on current step
-        const totalSteps = request.workflow.steps.length;
-        request.progress = (request.currentStep / totalSteps) * 100;
+        if (request.subRequests.length > 0) {
+            const lastSubRequest = await SubRequest.findById(request.subRequests[request.subRequests.length - 1]).populate('recipient');
+
+            if (lastSubRequest) {
+                if (lastSubRequest.recipient.occupation === 'Project Director') request.progress = 25;
+                else if (lastSubRequest.recipient.occupation === 'Quantity Surveyor') request.progress = 25;
+                else if (lastSubRequest.recipient.occupation === 'Procurement') request.progress = 50;
+                else if (lastSubRequest.recipient.occupation === 'Finance') request.progress = 75;
+                else if (lastSubRequest.recipient.occupation === 'Managing Partner') request.progress = 90;
+
+            }
+        }
 
         await request.save();
-
+        const recipientUser = await User.findById(recipient);
         const mailOptions = {
             from: 'noreply@smartlifekwt.com',
-            to: recipient.email,
-            subject: `[NEW REQUEST] Action required for Request ID: ${request.requestID}`,
+            to: recipientUser?.email,
+            subject: `[NEW REQUEST]There is a new subrequest for <strong>Request ID: ${request.requestID}`,
             html: `
                 <div style="font-family: Arial, sans-serif;">
-                    <h2>Hello ${recipient.fName} ${recipient.lName},</h2>
-                    <p><span style="color:red; font-weight:bold">[NEW REQUEST]:</span> Action required for Request ID: ${request.requestID}</p>
-                    <p>Action required: ${nextStep.actionRequired}</p>
-                    <p>Please <a href="http://213.136.88.115:8081/list_your_requests">Click here</a> to view the details.</p>
+                    <h2>Hello ${recipientUser?.fName} ${recipientUser?.lName},</h2>
+                    <p><span style="color:red; font-weight:bold">[NEW REQUEST]:</span> New Subrequest Created for Request No <strong>Request ID: ${request.requestID}</strong>.</p>
+                    <p>Please <a href="http://161.97.150.244:8081//list_your_requests">Click here</a> to view the details.</p>
                 </div>
             `
         };
@@ -362,188 +347,263 @@ exports.createSubRequest = async (req, res) => {
             }
         });
 
+
         res.status(201).json(newSubRequest);
     } catch (error) {
-        console.error("Error details:", error);
+        console.error("Error details:", error); // Log the detailed error
         res.status(500).json({ message: 'Error creating subrequest', error });
     }
 };
 
+// exports.createSubRequest = async (req, res) => {
+//     try {
+//         const requestId = req.params.requestId;
 
+//         const request = await Request.findOne({ _id: requestId }).populate('workflow');
+//         if (!request) {
+//             return res.status(404).json({ message: 'Request not found' });
+//         }
+
+//         const { sender, isFinalized, comments } = req.body;
+
+//         // Get the next step in the workflow
+//         const nextStep = request.workflow.steps.find(step => step.stepNumber === request.currentStep + 1);
+//         if (!nextStep) {
+//             return res.status(400).json({ message: 'Workflow is complete' });
+//         }
+
+//         // Find a user with the role specified in the next step
+//         const recipient = await User.findOne({ occupation: nextStep.role });
+//         if (!recipient) {
+//             return res.status(400).json({ message: 'No user found for the next step of the workflow' });
+//         }
+
+//         const newSubRequest = new SubRequest({
+//             sender,
+//             recipient: recipient._id,
+//             isFinalized,
+//             stepNumber: nextStep.stepNumber,
+//             actionRequired: nextStep.actionRequired,
+//             subRequestSentAt: new Date(),
+//             comments
+//         });
+//         await newSubRequest.save();
+
+//         request.subRequests.push(newSubRequest._id);
+//         request.currentStep = nextStep.stepNumber;
+
+//         // Update progress based on current step
+//         const totalSteps = request.workflow.steps.length;
+//         request.progress = (request.currentStep / totalSteps) * 100;
+
+//         await request.save();
+
+//         const mailOptions = {
+//             from: 'noreply@smartlifekwt.com',
+//             to: recipient.email,
+//             subject: `[NEW REQUEST] Action required for Request ID: ${request.requestID}`,
+//             html: `
+//                 <div style="font-family: Arial, sans-serif;">
+//                     <h2>Hello ${recipient.fName} ${recipient.lName},</h2>
+//                     <p><span style="color:red; font-weight:bold">[NEW REQUEST]:</span> Action required for Request ID: ${request.requestID}</p>
+//                     <p>Action required: ${nextStep.actionRequired}</p>
+//                     <p>Please <a href="http://213.136.88.115:8081/list_your_requests">Click here</a> to view the details.</p>
+//                 </div>
+//             `
+//         };
+
+//         // Send the email
+//         transporter.sendMail(mailOptions, (error, info) => {
+//             if (error) {
+//                 console.log('Error sending email:', error);
+//             } else {
+//                 console.log('Email sent:', info.response);
+//             }
+//         });
+
+//         res.status(201).json(newSubRequest);
+//     } catch (error) {
+//         console.error("Error details:", error);
+//         res.status(500).json({ message: 'Error creating subrequest', error });
+//     }
+// };
 
 
 
 exports.createRequest = async (req, res) => {
-    upload.any()(req, res, async (err) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).json({ message: 'Error uploading files', error: err });
-        }
-        const { ObjectId } = mongoose.Types;
-
-        try {
-            // Extract fields for the request
-            const {
-                requestType,
-                project,
-                requestTitle,
-                paymentType,
-                mobile,
-                globalStatus = 0,
-                isFinalized = 'false',
-                subRequest,
-                workflowId, // New field to specify which workflow to use
-            } = req.body;
-
-            const projectId = typeof project === 'string' ? new ObjectId(project.replace(/"/g, '')) : project;
-            let contractorForPayment = req.body.contractorForPayment ? req.body.contractorForPayment : null;
-
-            const items = req.body.items ? JSON.parse(req.body.items) : null;
-            const labour = req.body.labour ? JSON.parse(req.body.labour) : null;
-            const { sender, comments } = JSON.parse(subRequest);
-
-            // Configure AWS SDK
-            const s3 = new AWS.S3({
-                accessKeyId: process.env.S3_ACCESS_KEY,
-                secretAccessKey: process.env.S3_SECRET_KEY,
-                endpoint: 'https://usc1.contabostorage.com',
-                s3ForcePathStyle: true,
-                signatureVersion: 'v4',
-                region: process.env.S3_REGION,
-            });
-
-            // Handle file uploads
-            let attachmentUrl = null;
-            if (req.files && req.files.length > 0) {
-                const attachmentFile = req.files.find((file) => file.fieldname === 'attachment');
-                if (attachmentFile) {
-                    const uniqueFileName = `${Date.now()}-${attachmentFile.originalname}`;
-                    const params = {
-                        Bucket: 'jiroun-attachments',
-                        Key: uniqueFileName,
-                        Body: attachmentFile.buffer,
-                        ContentType: attachmentFile.mimetype,
-                    };
-                    const uploadResult = await s3.upload(params).promise();
-                    attachmentUrl = `https://usc1.contabostorage.com/410b07e5584e4d59abd535a08d7a69e6:jiroun-attachments/${uploadResult.Key}`;
-                }
-            }
-
-            // Handle labour attachments
-            let updatedLabour = null;
-            if (labour && Array.isArray(labour)) {
-                updatedLabour = await Promise.all(
-                    labour.map(async (item, index) => {
-                        const attachments = req.files.filter((file) => file.fieldname === `attachments_${index}`);
-                        const attachmentUrls = await Promise.all(
-                            attachments.map(async (file) => {
-                                const uniqueFileName = `${Date.now()}-${file.originalname}`;
-                                const params = {
-                                    Bucket: 'jiroun-attachments',
-                                    Key: uniqueFileName,
-                                    Body: file.buffer,
-                                    ContentType: file.mimetype,
-                                };
-                                const uploadResult = await s3.upload(params).promise();
-                                return `https://usc1.contabostorage.com/410b07e5584e4d59abd535a08d7a69e6:jiroun-attachments/${uploadResult.Key}`;
-                            })
-                        );
-                        return { ...item, labourAttachments: attachmentUrls.join(',') };
-                    })
-                );
-            }
-
-            // Fetch the workflow
-            const workflow = await Workflow.findById(workflowId);
-            if (!workflow) {
-                return res.status(400).json({ message: 'Invalid workflow specified' });
-            }
-
-            // Get the first step of the workflow
-            const firstStep = workflow.steps[0];
-
-            // Find a user with the role specified in the first step
-            const recipient = await User.findOne({ occupation: firstStep.role });
-            if (!recipient) {
-                return res.status(400).json({ message: 'No user found for the first step of the workflow' });
-            }
-
-            // Create a new SubRequest for the first step
-            const newSubRequest = new SubRequest({
-                sender,
-                recipient: recipient._id,
-                stepNumber: firstStep.stepNumber,
-                actionRequired: firstStep.actionRequired,
-                subRequestSentAt: new Date(),
-                comments,
-            });
-            await newSubRequest.save();
-
-            // Calculate totals
-            const noOfLabour = updatedLabour ? updatedLabour.reduce((total, item) => total + parseInt(item.numberOfSpecializedLabour), 0) : 0;
-            const priceOfLabour = updatedLabour ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitPriceOfLabour), 0) : 0;
-            const transportationPrice = updatedLabour ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitTransportationPrice), 0) : 0;
-            const totalAmount = updatedLabour ? updatedLabour.reduce((total, item) => {
-                const itemTotal = (parseInt(item.numberOfSpecializedLabour) * parseFloat(item.unitPriceOfLabour)) + parseFloat(item.unitTransportationPrice);
-                return total + itemTotal;
-            }, 0) : 0;
-
-            // Create a new Request
-            const newRequest = new Request({
-                requestType,
-                project: projectId,
-                estimatedAmount: 0,
-                requestTitle,
-                totalAmount: !isNaN(totalAmount) ? totalAmount : 0,
-                paidAmount: 0,
-                requiredAmount: 0,
-                items: items !== null ? items : [],
-                noOfLabour: !isNaN(noOfLabour) ? noOfLabour : 0,
-                priceOfLabour: !isNaN(priceOfLabour) ? priceOfLabour : 0,
-                transportationPrice: !isNaN(transportationPrice) ? transportationPrice : 0,
-                progress: (1 / workflow.steps.length) * 100, // Calculate initial progress
-                globalStatus,
-                isFinalized,
-                contractorForPayment: mobile ? (!isNaN(contractorForPayment) && contractorForPayment !== "null" ? contractorForPayment : null) : (contractorForPayment !== "null" ? contractorForPayment : null),
-                initiator: sender,
-                subRequests: [newSubRequest._id],
-                attachment: attachmentUrl,
-                labour: updatedLabour !== null && updatedLabour !== undefined ? updatedLabour : [],
-                workflow: workflowId,
-                currentStep: firstStep.stepNumber,
-            });
-            await newRequest.save();
-
-            // Send email notification
-            const mailOptions = {
-                from: 'noreply@smartlifekwt.com',
-                to: recipient.email,
-                subject: `[NEW REQUEST] Action required for Request No ${newRequest.requestID}`,
-                html: `
-                    <div style="font-family: Arial, sans-serif;">
-                        <h2>Hello ${recipient.fName} ${recipient.lName},</h2>
-                        <p><span style="color:red; font-weight:bolder">[NEW REQUEST]:</span> An action is required from your side to complete the request process. Request No ${newRequest.requestID}</strong>.</p>
-                        <p>Action required: ${firstStep.actionRequired}</p>
-                        <p>Please <a href="http://213.136.88.115:8081/list_your_requests">Click here</a> for details.</p>
-                    </div>
-                `,
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.log('Error sending email:', error);
-                } else {
-                    console.log('Email sent:', info.response);
-                }
-            });
-
-            res.status(201).json(newRequest);
-        } catch (error) {
-            console.log(error);
-            res.status(500).json({ message: 'Error creating request and subrequest', error });
-        }
-    });
 };
+
+// exports.createRequest = async (req, res) => {
+//     upload.any()(req, res, async (err) => {
+//         if (err) {
+//             console.log(err);
+//             return res.status(500).json({ message: 'Error uploading files', error: err });
+//         }
+//         const { ObjectId } = mongoose.Types;
+
+//         try {
+//             // Extract fields for the request
+//             const {
+//                 requestType,
+//                 project,
+//                 requestTitle,
+//                 paymentType,
+//                 mobile,
+//                 globalStatus = 0,
+//                 isFinalized = 'false',
+//                 subRequest,
+//                 workflowId, // New field to specify which workflow to use
+//             } = req.body;
+
+//             const projectId = typeof project === 'string' ? new ObjectId(project.replace(/"/g, '')) : project;
+//             let contractorForPayment = req.body.contractorForPayment ? req.body.contractorForPayment : null;
+
+//             const items = req.body.items ? JSON.parse(req.body.items) : null;
+//             const labour = req.body.labour ? JSON.parse(req.body.labour) : null;
+//             const { sender, comments } = JSON.parse(subRequest);
+
+//             // Configure AWS SDK
+//             const s3 = new AWS.S3({
+//                 accessKeyId: process.env.S3_ACCESS_KEY,
+//                 secretAccessKey: process.env.S3_SECRET_KEY,
+//                 endpoint: 'https://usc1.contabostorage.com',
+//                 s3ForcePathStyle: true,
+//                 signatureVersion: 'v4',
+//                 region: process.env.S3_REGION,
+//             });
+
+//             // Handle file uploads
+//             let attachmentUrl = null;
+//             if (req.files && req.files.length > 0) {
+//                 const attachmentFile = req.files.find((file) => file.fieldname === 'attachment');
+//                 if (attachmentFile) {
+//                     const uniqueFileName = `${Date.now()}-${attachmentFile.originalname}`;
+//                     const params = {
+//                         Bucket: 'jiroun-attachments',
+//                         Key: uniqueFileName,
+//                         Body: attachmentFile.buffer,
+//                         ContentType: attachmentFile.mimetype,
+//                     };
+//                     const uploadResult = await s3.upload(params).promise();
+//                     attachmentUrl = `https://usc1.contabostorage.com/410b07e5584e4d59abd535a08d7a69e6:jiroun-attachments/${uploadResult.Key}`;
+//                 }
+//             }
+
+//             // Handle labour attachments
+//             let updatedLabour = null;
+//             if (labour && Array.isArray(labour)) {
+//                 updatedLabour = await Promise.all(
+//                     labour.map(async (item, index) => {
+//                         const attachments = req.files.filter((file) => file.fieldname === `attachments_${index}`);
+//                         const attachmentUrls = await Promise.all(
+//                             attachments.map(async (file) => {
+//                                 const uniqueFileName = `${Date.now()}-${file.originalname}`;
+//                                 const params = {
+//                                     Bucket: 'jiroun-attachments',
+//                                     Key: uniqueFileName,
+//                                     Body: file.buffer,
+//                                     ContentType: file.mimetype,
+//                                 };
+//                                 const uploadResult = await s3.upload(params).promise();
+//                                 return `https://usc1.contabostorage.com/410b07e5584e4d59abd535a08d7a69e6:jiroun-attachments/${uploadResult.Key}`;
+//                             })
+//                         );
+//                         return { ...item, labourAttachments: attachmentUrls.join(',') };
+//                     })
+//                 );
+//             }
+
+//             // Fetch the workflow
+//             const workflow = await Workflow.findById(workflowId);
+//             if (!workflow) {
+//                 return res.status(400).json({ message: 'Invalid workflow specified' });
+//             }
+
+//             // Get the first step of the workflow
+//             const firstStep = workflow.steps[0];
+
+//             // Find a user with the role specified in the first step
+//             const recipient = await User.findOne({ occupation: firstStep.role });
+//             if (!recipient) {
+//                 return res.status(400).json({ message: 'No user found for the first step of the workflow' });
+//             }
+
+//             // Create a new SubRequest for the first step
+//             const newSubRequest = new SubRequest({
+//                 sender,
+//                 recipient: recipient._id,
+//                 stepNumber: firstStep.stepNumber,
+//                 actionRequired: firstStep.actionRequired,
+//                 subRequestSentAt: new Date(),
+//                 comments,
+//             });
+//             await newSubRequest.save();
+
+//             // Calculate totals
+//             const noOfLabour = updatedLabour ? updatedLabour.reduce((total, item) => total + parseInt(item.numberOfSpecializedLabour), 0) : 0;
+//             const priceOfLabour = updatedLabour ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitPriceOfLabour), 0) : 0;
+//             const transportationPrice = updatedLabour ? updatedLabour.reduce((total, item) => total + parseFloat(item.unitTransportationPrice), 0) : 0;
+//             const totalAmount = updatedLabour ? updatedLabour.reduce((total, item) => {
+//                 const itemTotal = (parseInt(item.numberOfSpecializedLabour) * parseFloat(item.unitPriceOfLabour)) + parseFloat(item.unitTransportationPrice);
+//                 return total + itemTotal;
+//             }, 0) : 0;
+
+//             // Create a new Request
+//             const newRequest = new Request({
+//                 requestType,
+//                 project: projectId,
+//                 estimatedAmount: 0,
+//                 requestTitle,
+//                 totalAmount: !isNaN(totalAmount) ? totalAmount : 0,
+//                 paidAmount: 0,
+//                 requiredAmount: 0,
+//                 items: items !== null ? items : [],
+//                 noOfLabour: !isNaN(noOfLabour) ? noOfLabour : 0,
+//                 priceOfLabour: !isNaN(priceOfLabour) ? priceOfLabour : 0,
+//                 transportationPrice: !isNaN(transportationPrice) ? transportationPrice : 0,
+//                 progress: (1 / workflow.steps.length) * 100, // Calculate initial progress
+//                 globalStatus,
+//                 isFinalized,
+//                 contractorForPayment: mobile ? (!isNaN(contractorForPayment) && contractorForPayment !== "null" ? contractorForPayment : null) : (contractorForPayment !== "null" ? contractorForPayment : null),
+//                 initiator: sender,
+//                 subRequests: [newSubRequest._id],
+//                 attachment: attachmentUrl,
+//                 labour: updatedLabour !== null && updatedLabour !== undefined ? updatedLabour : [],
+//                 workflow: workflowId,
+//                 currentStep: firstStep.stepNumber,
+//             });
+//             await newRequest.save();
+
+//             // Send email notification
+//             const mailOptions = {
+//                 from: 'noreply@smartlifekwt.com',
+//                 to: recipient.email,
+//                 subject: `[NEW REQUEST] Action required for Request No ${newRequest.requestID}`,
+//                 html: `
+//                     <div style="font-family: Arial, sans-serif;">
+//                         <h2>Hello ${recipient.fName} ${recipient.lName},</h2>
+//                         <p><span style="color:red; font-weight:bolder">[NEW REQUEST]:</span> An action is required from your side to complete the request process. Request No ${newRequest.requestID}</strong>.</p>
+//                         <p>Action required: ${firstStep.actionRequired}</p>
+//                         <p>Please <a href="http://213.136.88.115:8081/list_your_requests">Click here</a> for details.</p>
+//                     </div>
+//                 `,
+//             };
+
+//             transporter.sendMail(mailOptions, (error, info) => {
+//                 if (error) {
+//                     console.log('Error sending email:', error);
+//                 } else {
+//                     console.log('Email sent:', info.response);
+//                 }
+//             });
+
+//             res.status(201).json(newRequest);
+//         } catch (error) {
+//             console.log(error);
+//             res.status(500).json({ message: 'Error creating request and subrequest', error });
+//         }
+//     });
+// };
 exports.editRequestItems = async (req, res) => {
     try {
         const requestId = req.params.requestId;
@@ -898,28 +958,7 @@ exports.editSubRequest = async (req, res) => {
 }
 
 exports.editRequest = async (req, res) => {
-    try {
-        const requestId = req.params.requestId;
-        const { globalStatus, progress } = req.body;
-        const request = await Request.findById({ _id: requestId }).populate('workflow');
-        if (!request) {
-            return res.status(404).json({ message: 'Request not found' });
-        }
-        request.globalStatus = globalStatus;
-        request.progress = progress;
-
-        // Check if the workflow is complete
-        if (request.currentStep >= request.workflow.steps.length) {
-            request.globalStatus = 3; // Assuming 3 means completed
-        }
-
-        await request.save();
-        res.status(200).json({ message: 'Request updated successfully', request });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating Request', error });
-    }
-};
+}
 
 exports.checkRecipient = async (req, res) => {
     const { userId, requestId } = req.params;
