@@ -10,6 +10,8 @@ const subRequestSchema = new mongoose.Schema({
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     isFinalized: { type: Number, enum: [0, 1, 2], default: 0 },
+    stepNumber: { type: Number, required: true },
+    actionTaken: { type: String },
     subRequestSentAt: { type: Date },
     comments: { type: String },
 }, { timestamps: true });
@@ -35,6 +37,8 @@ const requestSchema = new mongoose.Schema({
     }],
     //Request Payment
     paymentType: { type: String },
+    workflow: { type: mongoose.Schema.Types.ObjectId, ref: 'Workflow', required: true },
+    currentStep: { type: Number, default: 1 },
     estimatedAmount: { type: Number },
     paidAmount: { type: Number },
     requiredAmount: { type: Number },
